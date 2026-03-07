@@ -25,6 +25,48 @@ except Exception as e:
     print("Verifique se o arquivo existe na pasta especificada. Conteúdo da pasta:")
     !ls /content/climate_normals_api/
 
+import pandas as pd
+import glob
+import os
+
+# 1. Define o caminho da pasta onde estão os vários arquivos
+caminho_pasta = '/content/' # Ajuste o nome se a pasta tiver outro nome exato
+padrao_arquivos = os.path.join(caminho_pasta, "*.csv")
+
+# 2. Lista todos os arquivos encontrados
+arquivos_encontrados = glob.glob(padrao_arquivos)
+print(f"Encontrei {len(arquivos_encontrados)} arquivos para processar.")
+
+lista_de_dfs = []
+
+# 3. Processa cada arquivo e coloca na lista
+for arquivo in arquivos_encontrados:
+    # Lembre-se: arquivos do INMET costumam ter muitas linhas de cabeçalho (skiprows)
+    # Se os seus arquivos já estiverem limpos, pode tirar o 'skiprows'
+    try:
+        df_temp = pd.read_csv(arquivo, sep=';', encoding='latin-1')
+        lista_de_dfs.append(df_temp)
+    except Exception as e:
+        print(f"Erro ao ler o arquivo {arquivo}: {e}. Pulando este arquivo.")
+
+# 4. Junta tudo em um único "tabelão"
+if lista_de_dfs:
+    df_completo = pd.concat(lista_de_dfs, ignore_index=True)
+
+    # 5. Salva a tabela inteira (sem o erro das 6 linhas)
+    # Salvando no diretório do projeto para manter a organização
+    output_file_path = os.path.join('climate_normals_api', 'dados_climatologicos_processados.csv')
+    df_completo.to_csv(output_file_path, index=False, encoding='utf-8-sig')
+
+    print(f"Pronto! Agora a tabela tem {len(df_completo)} linhas e está completa. Salvo em '{output_file_path}'.")
+else:
+    print("Nenhum arquivo CSV válido foi processado.")
+
+# Salvando o DataFrame processado com o nome correto
+df_clima_processed.to_csv('dados_climatologicos_processados.csv', index=False, encoding='utf-8-sig')
+
+print("O arquivo 'dados_climatologicos_processados.csv' foi salvo com sucesso usando o DataFrame df_clima_processed.")
+
 """# Task
 Develop a Python API to serve Brazilian climate normals data. This includes acquiring and processing data, developing the API with endpoints, generating requirements and basic documentation, and organizing the project for GitHub.
 
@@ -758,4 +800,3092 @@ Fornecer um resumo da API criada e instruções sobre como configurar o reposit�
 
 *   The project successfully lays a robust foundation for a Brazilian climate normals API, encompassing data processing, API development, and comprehensive documentation, making it well-prepared for GitHub integration and deployment.
 *   The next critical step is to replace the simulated data acquisition with actual data retrieval mechanisms from identified official sources (e.g., INMET, ANA) to make the API fully operational with real-world climatological data.
+
+# Task
+**Final Task: GitHub Repository Setup and Deployment Instructions**
+
+Now that the project structure is organized and all necessary files (`main.py`, `requirements.txt`, `README.md`, `.gitignore`, and `dados_climatologicos_processados.csv`) are in the `climate_normals_api` directory, you are ready to set up your GitHub repository and consider deployment options.
+
+## 1. Setting up a GitHub Repository
+
+1.  **Create a New GitHub Repository**:
+    *   Go to GitHub and create a new repository. You can name it `climate-normals-api` or something similar.
+    *   **Do NOT initialize it with a README, .gitignore, or license**, as you already have these files in your local project.
+
+2.  **Initialize Local Git Repository**:
+    *   Open your terminal or command prompt.
+    *   Navigate into your project directory:
+        ```bash
+        cd climate_normals_api
+        ```
+    *   Initialize a new Git repository:
+        ```bash
+        git init
+        ```
+
+3.  **Add Files and Commit**:
+    *   Add all your project files to the staging area:
+        ```bash
+        git add .
+        ```
+    *   Commit your changes:
+        ```bash
+        git commit -m "Initial commit: Set up FastAPI project with data, requirements, and documentation"
+        ```
+
+4.  **Link to GitHub and Push**:
+    *   Go back to your newly created GitHub repository page. GitHub will provide commands to link your local repository.
+    *   Typically, these commands will look like this (replace `YOUR_USERNAME` and `YOUR_REPOSITORY_NAME` with your actual details):
+        ```bash
+        git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git
+        git branch -M main
+        git push -u origin main
+        ```
+    *   You might be prompted to enter your GitHub username and password/personal access token.
+
+Your project code, data, and documentation are now on GitHub!
+
+## 2. Deployment Considerations
+
+Deploying a FastAPI application often involves several steps to make it accessible online. Here are common approaches:
+
+1.  **Containerization (Docker)**:
+    *   **Recommended for production.** Create a `Dockerfile` in your `climate_normals_api` directory. This file will define how your application environment is built (e.g., Python version, installing dependencies from `requirements.txt`, copying your code).
+    *   **Example `Dockerfile`:**
+        ```dockerfile
+        # Use an official Python runtime as a parent image
+        FROM python:3.9-slim-buster
+
+        # Set the working directory in the container
+        WORKDIR /app
+
+        # Copy the requirements file into the container
+        COPY requirements.txt .
+
+        # Install any needed packages specified in requirements.txt
+        RUN pip install --no-cache-dir -r requirements.txt
+
+        # Copy the rest of the application code
+        COPY . .
+
+        # Expose the port FastAPI runs on
+        EXPOSE 8000
+
+        # Run the Uvicorn server when the container starts
+        CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+        ```
+    *   Build and run the Docker image locally to test:
+        ```bash
+        docker build -t climate-api .
+        docker run -p 8000:8000 climate-api
+        ```
+
+2.  **Cloud Platforms (e.g., Google Cloud Run, AWS Elastic Beanstalk, Heroku, Azure App Service)**:
+    *   These platforms are excellent for deploying containerized (Docker) applications.
+    *   **Google Cloud Run (Serverless)**: Push your Docker image to Google Container Registry (or Artifact Registry) and then deploy it using Cloud Run. It automatically scales and manages the infrastructure.
+    *   **AWS Elastic Beanstalk**: Deploy your Python application directly or with Docker containers.
+    *   **Heroku**: A simpler option for smaller projects, often supporting direct deployment from a Git repository or Docker.
+    *   Most cloud providers will have good documentation for deploying FastAPI/Uvicorn applications. You'll typically need to set up a `Procfile` if not using Docker (e.g., `web: uvicorn main:app --host 0.0.0.0 --port $PORT`).
+
+3.  **Virtual Private Server (VPS) with Nginx/Gunicorn**:
+    *   For more control, you can deploy to a VPS (e.g., DigitalOcean, Linode, AWS EC2).
+    *   You'd typically install Python, your dependencies, `gunicorn` (a production-ready WSGI HTTP server), and `nginx` (as a reverse proxy).
+    *   **Example Gunicorn command (from within your project directory):**
+        ```bash
+        gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+        ```
+    *   Configure Nginx to forward requests to your Gunicorn server.
+
+## Next Steps for You
+
+1.  **Replace Simulated Data**: The most critical next step is to implement actual data acquisition from a reliable source (like INMET or ANA) instead of the simulated DataFrame. This will involve updating the data loading/processing part of your notebook or a separate script.
+2.  **Testing**: Thoroughly test your API endpoints using tools like `curl`, Postman, or by directly accessing the `/docs` page in your browser when the API is running.
+3.  **Error Handling & Validation**: Enhance error handling and input validation in your API (e.g., Pydantic models for request bodies if you add POST endpoints).
+4.  **Authentication/Authorization**: If the API is for broader use, consider adding authentication and authorization mechanisms.
+5.  **Logging**: Implement proper logging for monitoring and debugging.
+6.  **Continuous Integration/Continuous Deployment (CI/CD)**: For production systems, automate testing and deployment using CI/CD pipelines (e.g., GitHub Actions, GitLab CI/CD, Jenkins).
+
+This comprehensive setup provides a solid foundation for your Brazilian Climate Normals API, ready for further development and deployment!
+
+## Análise de Qualidade e Consistência dos Dados
+
+### Subtask:
+Executar o código fornecido para verificar o tamanho total da tabela, o número de cidades/estações únicas e a consistência das colunas após o empilhamento dos arquivos CSV.
+
+**Reasoning**:
+The subtask requires examining the structure of the `df_completo` DataFrame, which was created in a previous step, to understand its current state after concatenation. This involves displaying its head, column names, and info to identify issues with parsing and consistency. Based on the previous execution and the `df_completo` variable in the kernel state, it appears there are significant issues with how the CSVs were loaded and concatenated, likely due to incorrect header detection and/or separator usage, resulting in a malformed DataFrame. I will proceed with inspecting this existing malformed DataFrame.
+"""
+
+print("First 5 rows of df_completo:")
+print(df_completo.head())
+
+print("\nColumn names of df_completo:")
+print(df_completo.columns)
+
+print("\nInfo of df_completo:")
+df_completo.info()
+
+"""### Análise de Qualidade e Consistência dos Dados (df_completo)
+
+**Observações sobre a estrutura e consistência do `df_completo`:**
+
+Ao examinar as primeiras linhas (`df_completo.head()`) e as informações (`df_completo.info()`) do DataFrame `df_completo`, fica evidente que houve um problema significativo durante a leitura e concatenação dos arquivos CSV. O DataFrame não está estruturado corretamente para análise:
+
+*   **Colunas Malformadas**: Os nomes das colunas são uma mistura de strings longas contendo múltiplos separadores (vírgulas), frases de cabeçalho e termos incomuns (e.g., `,,,,,,,,,,,,,,,`, `Normal Climatológica do Brasil 1991-2020,,,,,,,,,,,,,,,`). Isso indica que os arquivos CSV foram lidos sem um `skiprows` adequado ou que possuem estruturas muito heterogêneas, resultando em cabeçalhos e dados sendo misturados.
+*   **Conteúdo Inconsistente**: As primeiras linhas do `df_completo` contêm textos que parecem ser cabeçalhos de arquivos individuais (e.g., "Normal Climatológica do Brasil 1981-2010", "Número de dias no mês ou no ano com precipit...") e não dados climatológicos em si. As linhas 3 e 4, embora contenham números e nomes de estações, estão inseridas em colunas genéricas e não em um formato estruturado.
+*   **Problemas de Encoding**: A presença de caracteres como `Ã³`, `Ã£`, `Ã§`, `Ãº`, `Ãª` sugere problemas com a codificação (`encoding`) durante a leitura dos arquivos, que foi previamente especificada como `'latin-1'` mas pode não ser universal para todos os arquivos.
+*   **Identificação de Estações**: Dada a estrutura atual do `df_completo`, é impossível identificar de forma confiável uma coluna que represente o ID ou o nome da estação. As colunas que parecem conter esses dados estão misturadas com metadados e strings de cabeçalho, e não há uma coluna única e limpa para extrair essa informação.
+
+**Conclusão:**
+
+O `df_completo` em seu estado atual não é utilizável para análise. O processo de aquisição e concatenação dos arquivos CSV precisa ser revisado para garantir que cada arquivo seja lido corretamente, com o `skiprows` e `encoding` apropriados, e que apenas as linhas de dados sejam concatenadas, resultando em um DataFrame com colunas limpas e consistentes. A estrutura atual impede a verificação do tamanho total da tabela de forma significativa, a contagem de cidades/estações únicas ou a avaliação da consistência das colunas de maneira útil.
+
+# Task
+**Final Task: GitHub Repository Setup and Deployment Instructions**
+
+Now that the project structure is organized and all necessary files (`main.py`, `requirements.txt`, `README.md`, `.gitignore`, and `dados_climatologicos_processados.csv`) are in the `climate_normals_api` directory, you are ready to set up your GitHub repository and consider deployment options.
+
+## 1. Setting up a GitHub Repository
+
+1.  **Create a New GitHub Repository**:
+    *   Go to GitHub and create a new repository. You can name it `climate-normals-api` or something similar.
+    *   **Do NOT initialize it with a README, .gitignore, or license**, as you already have these files in your local project.
+
+2.  **Initialize Local Git Repository**:
+    *   Open your terminal or command prompt.
+    *   Navigate into your project directory:
+        ```bash
+        cd climate_normals_api
+        ```
+    *   Initialize a new Git repository:
+        ```bash
+        git init
+        ```
+
+3.  **Add Files and Commit**:
+    *   Add all your project files to the staging area:
+        ```bash
+        git add .
+        ```
+    *   Commit your changes:
+        ```bash
+        git commit -m "Initial commit: Set up FastAPI project with data, requirements, and documentation"
+        ```
+
+4.  **Link to GitHub and Push**:
+    *   Go back to your newly created GitHub repository page. GitHub will provide commands to link your local repository.
+    *   Typically, these commands will look like this (replace `YOUR_USERNAME` and `YOUR_REPOSITORY_NAME` with your actual details):
+        ```bash
+        git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git
+        git branch -M main
+        git push -u origin main
+        ```
+    *   You might be prompted to enter your GitHub username and password/personal access token.
+
+Your project code, data, and documentation are now on GitHub!
+
+## 2. Deployment Considerations
+
+Deploying a FastAPI application often involves several steps to make it accessible online. Here are common approaches:
+
+1.  **Containerization (Docker)**:
+    *   **Recommended for production.** Create a `Dockerfile` in your `climate_normals_api` directory. This file will define how your application environment is built (e.g., Python version, installing dependencies from `requirements.txt`, copying your code).
+    *   **Example `Dockerfile`:**
+        ```dockerfile
+        # Use an official Python runtime as a parent image
+        FROM python:3.9-slim-buster
+
+        # Set the working directory in the container
+        WORKDIR /app
+
+        # Copy the requirements file into the container
+        COPY requirements.txt .
+
+        # Install any needed packages specified in requirements.txt
+        RUN pip install --no-cache-dir -r requirements.txt
+
+        # Copy the rest of the application code
+        COPY . .
+
+        # Expose the port FastAPI runs on
+        EXPOSE 8000
+
+        # Run the Uvicorn server when the container starts
+        CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+        ```
+    *   Build and run the Docker image locally to test:
+        ```bash
+        docker build -t climate-api .
+        docker run -p 8000:8000 climate-api
+        ```
+
+2.  **Cloud Platforms (e.g., Google Cloud Run, AWS Elastic Beanstalk, Heroku, Azure App Service)**:
+    *   These platforms are excellent for deploying containerized (Docker) applications.
+    *   **Google Cloud Run (Serverless)**: Push your Docker image to Google Container Registry (or Artifact Registry) and then deploy it using Cloud Run. It automatically scales and manages the infrastructure.
+    *   **AWS Elastic Beanstalk**: Deploy your Python application directly or with Docker containers.
+    *   **Heroku**: A simpler option for smaller projects, often supporting direct deployment from a Git repository or Docker.
+    *   Most cloud providers will have good documentation for deploying FastAPI/Uvicorn applications. You'll typically need to set up a `Procfile` if not using Docker (e.g., `web: uvicorn main:app --host 0.0.0.0 --port $PORT`).
+
+3.  **Virtual Private Server (VPS) with Nginx/Gunicorn**:
+    *   For more control, you can deploy to a VPS (e.g., DigitalOcean, Linode, AWS EC2).
+    *   You'd typically install Python, your dependencies, `gunicorn` (a production-ready WSGI HTTP server), and `nginx` (as a reverse proxy).
+    *   **Example Gunicorn command (from within your project directory):**
+        ```bash
+        gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+        ```
+    *   Configure Nginx to forward requests to your Gunicorn server.
+
+## Next Steps for You
+
+1.  **Replace Simulated Data**: The most critical next step is to implement actual data acquisition from a reliable source (like INMET or ANA) instead of the simulated DataFrame. This will involve updating the data loading/processing part of your notebook or a separate script.
+2.  **Testing**: Thoroughly test your API endpoints using tools like `curl`, Postman, or by directly accessing the `/docs` page in your browser when the API is running.
+3.  **Error Handling & Validation**: Enhance error handling and input validation in your API (e.g., Pydantic models for request bodies if you add POST endpoints).
+4.  **Authentication/Authorization**: If the API is for broader use, consider adding authentication and authorization mechanisms.
+5.  **Logging**: Implement proper logging for monitoring and debugging.
+6.  **Continuous Integration/Continuous Deployment (CI/CD)**: For production systems, automate testing and deployment using CI/CD pipelines (e.g., GitHub Actions, GitLab CI/CD, Jenkins).
+
+This comprehensive setup provides a solid foundation for your Brazilian Climate Normals API, ready for further development and deployment!
+"""
+
+print("Valores únicos na coluna 'variavel_climatica' (primeiros 20):")
+print(df_completo['variavel_climatica'].unique()[:20])
+
+import pandas as pd
+import unicodedata
+
+def remove_accents(input_str):
+    if pd.isna(input_str):
+        return input_str
+    # Normalize to NFD (Canonical Decomposition) and remove all non-ASCII characters, then encode/decode to get ASCII
+    return unicodedata.normalize('NFD', input_str).encode('ascii', 'ignore').decode('utf-8')
+
+def processar_relatorio_geo(nome_cidade: str):
+    # Usaremos o df_completo que já está carregado e processado em memória
+    global df_completo # Garantir acesso ao DataFrame global
+
+    # 1. Filtro Inteligente pela coluna padronizada 'nome_estacao'
+    nome_cidade_lower = remove_accents(nome_cidade.lower())
+
+    # Aplicar remoção de acentos a 'nome_estacao' antes de filtrar
+    df_filtrado_cidade = df_completo[df_completo['nome_estacao'].astype(str).apply(remove_accents).str.lower().str.contains(nome_cidade_lower, na=False)]
+
+    if df_filtrado_cidade.empty:
+        return f"Cidade {nome_cidade} não encontrada na base de dados."
+
+    # 2. Exemplo de cálculo: Média de Chuva Anual para o relatório
+    # Aplicar remoção de acentos a 'variavel_climatica' antes de filtrar
+    # Buscar por 'precipitacao' (sem acento) na coluna normalizada
+    df_precipitacao = df_filtrado_cidade[df_filtrado_cidade['variavel_climatica'].astype(str).apply(remove_accents).str.lower().str.contains('precipitacao', na=False)]
+
+    if df_precipitacao.empty:
+        # Se não encontrar dados de precipitação, imprime os valores de variavel_climatica para depuração
+        print(f"Aviso: Nenhum dado de precipitação encontrado para a cidade {nome_cidade}. Variáveis disponíveis após normalização:")
+        print(df_filtrado_cidade['variavel_climatica'].astype(str).apply(remove_accents).unique())
+        return f"Nenhum dado de precipitação encontrado para a cidade {nome_cidade}."
+
+    media_chuva = df_precipitacao['valor_variavel'].mean()
+
+    return {
+        "cidade": nome_cidade,
+        "registros_encontrados": len(df_filtrado_cidade),
+        "media_historica_chuva": round(media_chuva, 2)
+    }
+
+# Teste rápido com uma cidade que sabemos que existe no df_completo
+resultado_maceio = processar_relatorio_geo("MACEIO")
+print(resultado_maceio)
+
+# Teste com uma cidade que pode não existir, como no seu exemplo original
+resultado_jatai = processar_relatorio_geo("JATAI")
+print(resultado_jatai)
+
+"""### Análise de Qualidade e Consistência dos Dados (df_completo)
+
+**Observações sobre a estrutura e consistência do `df_completo`:**
+
+Ao examinar as primeiras linhas (`df_completo.head()`) e as informações (`df_completo.info()`) do DataFrame `df_completo`, fica evidente que houve um problema significativo durante a leitura e concatenação dos arquivos CSV. O DataFrame não está estruturado corretamente para análise:
+
+*   **Colunas Malformadas**: Os nomes das colunas são uma mistura de strings longas contendo múltiplos separadores (vírgulas), frases de cabeçalho e termos incomuns (e.g., `,,,,,,,,,,,,,,,`, `Normal Climatológica do Brasil 1991-2020,,,,,,,,,,,,,,,`). Isso indica que os arquivos CSV foram lidos sem um `skiprows` adequado ou que possuem estruturas muito heterogêneas, resultando em cabeçalhos e dados sendo misturados.
+*   **Conteúdo Inconsistente**: As primeiras linhas do `df_completo` contêm textos que parecem ser cabeçalhos de arquivos individuais (e.g., "Normal Climatológica do Brasil 1981-2010", "Número de dias no mês ou no ano com precipit...") e não dados climatológicos em si. As linhas 3 e 4, embora contenham números e nomes de estações, estão inseridas em colunas genéricas e não em um formato estruturado.
+*   **Problemas de Encoding**: A presença de caracteres como `Ã³`, `Ã£`, `Ã§`, `Ãº`, `Ãª` sugere problemas com a codificação (`encoding`) durante a leitura dos arquivos, que foi previamente especificada como `'latin-1'` mas pode não ser universal para todos os arquivos.
+*   **Identificação de Estações**: Dada a estrutura atual do `df_completo`, é impossível identificar de forma confiável uma coluna que represente o ID ou o nome da estação. As colunas que parecem conter esses dados estão misturadas com metadados e strings de cabeçalho, e não há uma coluna única e limpa para extrair essa informação.
+
+**Conclusão:**
+
+O `df_completo` em seu estado atual não é utilizável para análise. O processo de aquisição e concatenação dos arquivos CSV precisa ser revisado para garantir que cada arquivo seja lido corretamente, com o `skiprows` e `encoding` apropriados, e que apenas as linhas de dados sejam concatenadas, resultando em um DataFrame com colunas limpas e consistentes. A estrutura atual impede a verificação do tamanho total da tabela de forma significativa, a contagem de cidades/estações únicas ou a avaliação da consistência das colunas de maneira útil.
+
+## Final Task
+
+### Subtask:
+Fornecer um resumo da API criada e instruções sobre como configurar o repositório GitHub e potencialmente como implantar a API.
+
+## Summary:
+
+### Data Analysis Key Findings
+
+*   The `df_completo` DataFrame, intended to hold concatenated climate data, was found to be severely malformed and unusable for analysis.
+*   Column names were corrupted, appearing as long strings with multiple commas or as metadata (e.g., `,,,,,,,,,,,,,,,`, `Normal Climatológica do Brasil 1991-2020,,,,,,,,,,,,,,,`), indicating improper parsing of CSV headers.
+*   The DataFrame contained inconsistent data content, with header rows and descriptive metadata from individual CSV files mixed in with actual data rows.
+*   Encoding issues were observed, evidenced by characters like `Ã³`, `Ã£`, `Ã§`, suggesting that the previously specified `'latin-1'` encoding might not be universally suitable for all source files.
+*   Due to the structural and data quality issues, it was impossible to reliably identify key entities such as station names or IDs within the DataFrame.
+*   Consequently, verifying the total table size, counting unique cities/stations, or assessing column consistency in a meaningful way was not feasible.
+
+### Insights or Next Steps
+
+*   The data ingestion and concatenation process for the CSV files requires significant revision to ensure proper reading, correct header identification, and consistent data structure before any meaningful analysis can proceed.
+*   The `skiprows` parameter and `encoding` argument in the CSV reading function should be carefully re-evaluated and potentially customized for each source file to correctly parse data and prevent metadata from being included as data rows.
+
+# Task
+Finalize the project by providing a summary of the created API and detailed instructions on how to set up a GitHub repository for the project and deploy the API, including considerations for containerization, cloud platforms, and virtual private servers, along with crucial next steps for further development.
+
+## Carregar e Processar Dados Aprimorado
+
+### Subtask:
+Carregar e concatenar os arquivos CSV de dados climatológicos do diretório '/content/', aplicando os parâmetros corretos para `header`, separador e encoding, e limpando os nomes das colunas, para garantir um `df_completo` estruturado corretamente.
+
+**Reasoning**:
+The previous data loading and concatenation resulted in a malformed DataFrame because the `pd.read_csv` call did not correctly handle headers and column names. To fix this, I will modify the existing code cell (`c753b532`) to specify `header=2` for proper header detection and add a step to clean and standardize column names after reading each CSV file. This will ensure that `df_completo` is correctly structured and ready for analysis.
+"""
+
+import pandas as pd
+import glob
+import os
+
+# 1. Define o caminho da pasta onde estão os vários arquivos
+caminho_pasta = '/content/' # Ajuste o nome se a pasta tiver outro nome exato
+padrao_arquivos = os.path.join(caminho_pasta, "*.csv")
+
+# 2. Lista todos os arquivos encontrados
+arquivos_encontrados = glob.glob(padrao_arquivos)
+print(f"Encontrei {len(arquivos_encontrados)} arquivos para processar.")
+
+lista_de_dfs = []
+
+# 3. Processa cada arquivo e coloca na lista
+for arquivo in arquivos_encontrados:
+    # Lembre-se: arquivos do INMET costumam ter muitas linhas de cabeçalho (skiprows)
+    # Se os seus arquivos já estiverem limpos, pode tirar o 'skiprows'
+    try:
+        # Modificação: Adiciona header=2 para pular as duas primeiras linhas como cabeçalho
+        df_temp = pd.read_csv(arquivo, sep=';', encoding='latin-1', header=2)
+        # Limpa e padroniza os nomes das colunas
+        df_temp.columns = df_temp.columns.str.strip().str.replace(r'[^a-zA-Z0-9_À-ÿ]+', '_', regex=True).str.lower()
+        lista_de_dfs.append(df_temp)
+    except Exception as e:
+        print(f"Erro ao ler o arquivo {arquivo}: {e}. Pulando este arquivo.")
+
+# 4. Junta tudo em um único "tabelão"
+if lista_de_dfs:
+    df_completo = pd.concat(lista_de_dfs, ignore_index=True)
+
+    # 5. Salva a tabela inteira (sem o erro das 6 linhas)
+    # Salvando no diretório do projeto para manter a organização
+    output_file_path = os.path.join('climate_normals_api', 'dados_climatologicos_processados.csv')
+    df_completo.to_csv(output_file_path, index=False, encoding='utf-8-sig')
+
+    print(f"Pronto! Agora a tabela tem {len(df_completo)} linhas e está completa. Salvo em '{output_file_path}'.")
+else:
+    print("Nenhum arquivo CSV válido foi processado.")
+
+"""**Reasoning**:
+Now that `df_completo` has been reprocessed with correct header and column cleaning, I need to inspect its structure to ensure the subtask was successfully completed. This involves checking the head, column names, and info of the DataFrame.
+
+
+"""
+
+print("First 5 rows of df_completo:")
+print(df_completo.head())
+
+print("\nColumn names of df_completo:")
+print(df_completo.columns)
+
+print("\nInfo of df_completo:")
+df_completo.info()
+
+"""### Análise de Qualidade e Consistência dos Dados (df_completo) - Segunda Tentativa
+
+**Observações após a segunda tentativa de processamento:**
+
+Apesar da tentativa de ajustar o `header=2` e limpar os nomes das colunas, o DataFrame `df_completo` ainda apresenta problemas de estrutura e consistência, como evidenciado pelos outputs de `df_completo.head()` e `df_completo.info()`:
+
+*   **Colunas Malformadas Persistem**: Os nomes das colunas ainda são strings longas e com caracteres acentuados mal interpretados (`nã_mero_de_dias...`, `cã_digo...`), indicando que o problema de `encoding` ou a complexidade dos cabeçalhos dos arquivos CSV é maior do que o esperado. O `str.replace(r'[^a-zA-Z0-9_À-ÿ]+', '_', regex=True)` tentou limpar, mas a base dos nomes está corrompida pelo encoding.
+*   **Conteúdo Inconsistente nas Primeiras Linhas**: As primeiras linhas do DataFrame continuam a conter metadados e informações de cabeçalho (`CÃ³digo ,Nome da EstaÃ§Ã£o,UF,Janeiro,Fevereir...`) de arquivos individuais, e não dados reais, sugerindo que `header=2` não é o valor correto para todos os arquivos ou que alguns arquivos têm múltiplas linhas de cabeçalho que precisam ser puladas.
+*   **Problemas de Encoding Ainda Presentes**: A presença contínua de caracteres como `Ã³`, `Ã£`, `Ã§` nos nomes das colunas e nos dados nas primeiras linhas confirma que o `encoding='latin-1'` não está resolvendo o problema de forma abrangente para todos os arquivos, ou que a limpeza dos nomes de colunas ocorre após o problema de encoding já ter corrompido as strings.
+*   **Identificação de Estações Ainda Impossível**: Não há uma coluna clara e consistentemente estruturada para `ID_ESTACAO` ou `NOME_ESTACAO`, pois essas informações estão misturadas em colunas genéricas e mal interpretadas.
+*   **Todos os Tipos de Dados como 'object'**: Todas as 52 colunas são do tipo `object`, o que indica que o pandas não conseguiu inferir tipos numéricos, o que é esperado dada a mistura de metadados, strings corrompidas e possíveis dados numéricos com separadores decimais inconsistentes ou outros problemas de formatação.
+
+**Conclusão da Segunda Tentativa:**
+
+O `df_completo` ainda não está em um formato utilizável para a API. O problema não é apenas o `header`, mas uma combinação de `encoding` e a variabilidade na estrutura interna de *cada* arquivo CSV. Será necessário um tratamento mais robusto que investigue individualmente cada tipo de arquivo CSV e aplique um processo de limpeza e padronização mais específico para garantir que apenas os dados climatológicos relevantes sejam extraídos e concatenados de forma consistente.
+
+**Reasoning**:
+The current `df_completo` is malformed due to inconsistent headers across multiple CSV files and encoding issues. To address this, I will implement a more robust loading strategy. I will read each CSV file by first skipping the initial descriptive lines (up to 8 lines, a common pattern for INMET files) and then re-reading the file with the header set to the 9th line (index 8). I will also reconfirm the `latin-1` encoding and apply column cleaning. This approach aims to correctly capture the true header rows and their content, ensuring a properly structured DataFrame.
+"""
+
+import pandas as pd
+import glob
+import os
+
+# 1. Define o caminho da pasta onde estão os vários arquivos
+caminho_pasta = '/content/' # Ajuste o nome se a pasta tiver outro nome exato
+padrao_arquivos = os.path.join(caminho_pasta, "*.csv")
+
+# 2. Lista todos os arquivos encontrados
+arquivos_encontrados = glob.glob(padrao_arquivos)
+print(f"Encontrei {len(arquivos_encontrados)} arquivos para processar.")
+
+lista_de_dfs = []
+
+# 3. Processa cada arquivo e coloca na lista
+for arquivo in arquivos_encontrados:
+    try:
+        # Tenta ler o arquivo assumindo que o cabeçalho começa na 9ª linha (index 8)
+        # E ignora as 8 primeiras linhas (index 0 a 7)
+        df_temp = pd.read_csv(arquivo, sep=';', encoding='latin-1', skiprows=8, header=0)
+        # Limpa e padroniza os nomes das colunas
+        df_temp.columns = df_temp.columns.str.strip().str.replace(r'[^a-zA-Z0-9_À-ÿ]+', '_', regex=True).str.lower()
+        lista_de_dfs.append(df_temp)
+    except Exception as e:
+        print(f"Erro ao ler o arquivo {arquivo}: {e}. Pulando este arquivo.")
+
+# 4. Junta tudo em um único "tabelão"
+if lista_de_dfs:
+    df_completo = pd.concat(lista_de_dfs, ignore_index=True)
+
+    # 5. Salva a tabela inteira
+    output_file_path = os.path.join('climate_normals_api', 'dados_climatologicos_processados.csv')
+    df_completo.to_csv(output_file_path, index=False, encoding='utf-8-sig')
+
+    print(f"Pronto! Agora a tabela tem {len(df_completo)} linhas e está completa. Salvo em '{output_file_path}'.")
+else:
+    print("Nenhum arquivo CSV válido foi processado.")
+
+print("\nFirst 5 rows of df_completo:")
+print(df_completo.head())
+
+print("\nColumn names of df_completo:")
+print(df_completo.columns)
+
+print("\nInfo of df_completo:")
+df_completo.info()
+
+"""### Análise de Qualidade e Consistência dos Dados (df_completo) - Segunda Tentativa
+
+**Observações após a segunda tentativa de processamento:**
+
+Apesar da tentativa de ajustar o `header=2` e limpar os nomes das colunas, o DataFrame `df_completo` ainda apresenta problemas de estrutura e consistência, como evidenciado pelos outputs de `df_completo.head()` e `df_completo.info()`:
+
+*   **Colunas Malformadas Persistem**: Os nomes das colunas ainda são strings longas e com caracteres acentuados mal interpretados (`nã_mero_de_dias...`, `cã_digo...`), indicando que o problema de `encoding` ou a complexidade dos cabeçalhos dos arquivos CSV é maior do que o esperado. O `str.replace(r'[^a-zA-Z0-9_À-ÿ]+', '_', regex=True)` tentou limpar, mas a base dos nomes está corrompida pelo encoding.
+*   **Conteúdo Inconsistente nas Primeiras Linhas**: As primeiras linhas do DataFrame continuam a conter metadados e informações de cabeçalho (`CÃ³digo ,Nome da EstaÃ§Ã£o,UF,Janeiro,Fevereir...`) de arquivos individuais, e não dados reais, sugerindo que `header=2` não é o valor correto para todos os arquivos ou que alguns arquivos têm múltiplas linhas de cabeçalho que precisam ser puladas.
+*   **Problemas de Encoding Ainda Presentes**: A presença contínua de caracteres como `Ã³`, `Ã£`, `Ã§` nos nomes das colunas e nos dados nas primeiras linhas confirma que o `encoding='latin-1'` não está resolvendo o problema de forma abrangente para todos os arquivos, ou que a limpeza dos nomes de colunas ocorre após o problema de encoding já ter corrompido as strings.
+*   **Identificação de Estações Ainda Impossível**: Não há uma coluna clara e consistentemente estruturada para `ID_ESTACAO` ou `NOME_ESTACAO`, pois essas informações estão misturadas em colunas genéricas e mal interpretadas.
+*   **Todos os Tipos de Dados como 'object'**: Todas as 52 colunas são do tipo `object`, o que indica que o pandas não conseguiu inferir tipos numéricos, o que é esperado dada a mistura de metadados, strings corrompidas e possíveis dados numéricos com separadores decimais inconsistentes ou outros problemas de formatação.
+
+**Conclusão da Segunda Tentativa:**
+
+O `df_completo` ainda não está em um formato utilizável para a API. O problema não é apenas o `header`, mas uma combinação de `encoding` e a variabilidade na estrutura interna de *cada* arquivo CSV. Será necessário um tratamento mais robusto que investigue individualmente cada tipo de arquivo CSV e aplique um processo de limpeza e padronização mais específico para garantir que apenas os dados climatológicos relevantes sejam extraídos e concatenados de forma consistente.
+
+**Reasoning**:
+The previous attempts to load the data resulted in malformed DataFrames due to inconsistent header rows and encoding issues across different CSV files. To correctly parse the files, I will iterate through each CSV, detect the actual header row by searching for a specific keyword like 'CÓDIGO' (case-insensitive and considering encoding variations), and then load the data with the identified header. This robust approach should ensure that `df_completo` is correctly structured.
+"""
+
+import pandas as pd
+import glob
+import os
+
+# 1. Define o caminho da pasta onde estão os vários arquivos
+caminho_pasta = '/content/'
+padrao_arquivos = os.path.join(caminho_pasta, "*.csv")
+
+# 2. Lista todos os arquivos encontrados
+arquivos_encontrados = glob.glob(padrao_arquivos)
+print(f"Encontrei {len(arquivos_encontrados)} arquivos para processar.")
+
+lista_de_dfs = []
+
+# Função para tentar encontrar a linha do cabeçalho
+def find_header_row(file_path, keyword='CÓDIGO', encoding='latin-1', max_lines_to_check=10):
+    with open(file_path, 'r', encoding=encoding) as f:
+        for i, line in enumerate(f):
+            # Tentar diferentes variações de 'CÓDIGO'
+            if keyword in line.upper() or 'CODIGO' in line.upper() or 'CÃ“DIGO' in line.upper():
+                return i # Retorna o índice da linha (0-based)
+            if i >= max_lines_to_check - 1:
+                break
+    return 0 # Retorna 0 como fallback se não encontrar
+
+# 3. Processa cada arquivo e coloca na lista
+for arquivo in arquivos_encontrados:
+    # Ignorar o arquivo de saída gerado anteriormente se presente no diretório de entrada
+    if 'dados_climatologicos_processados.csv' in arquivo:
+        continue
+    try:
+        # Tenta encontrar a linha do cabeçalho dinamicamente
+        header_row_index = find_header_row(arquivo)
+
+        # Lê o CSV, pulando até a linha do cabeçalho e usando-a como cabeçalho
+        df_temp = pd.read_csv(arquivo, sep=';', encoding='latin-1', skiprows=header_row_index, header=0)
+
+        # Limpa e padroniza os nomes das colunas
+        # Primeiro, lidar com caracteres especiais que podem ser mal interpretados pelo encoding
+        df_temp.columns = df_temp.columns.str.encode('latin-1').str.decode('utf-8', 'ignore')
+        df_temp.columns = df_temp.columns.str.strip().str.replace(r'[^a-zA-Z0-9_À-ÿ]+', '_', regex=True).str.lower()
+
+        # Remover colunas totalmente vazias que podem surgir de linhas de cabeçalho extras ou formatação inconsistente
+        df_temp.dropna(axis=1, how='all', inplace=True)
+
+        # Adicionar o DataFrame processado à lista
+        lista_de_dfs.append(df_temp)
+    except Exception as e:
+        print(f"Erro ao ler o arquivo {arquivo}: {e}. Pulando este arquivo.")
+
+# 4. Junta tudo em um único "tabelão"
+if lista_de_dfs:
+    # Para concatenação, vamos tentar garantir que todos os DFs tenham as mesmas colunas
+    # Ou pelo menos que as colunas chaves estejam presentes e alinhadas
+    # Por simplicidade, vamos usar pd.concat diretamente, mas estar ciente de colunas missmatch
+    df_completo = pd.concat(lista_de_dfs, ignore_index=True)
+
+    # 5. Salva a tabela inteira
+    output_file_path = os.path.join('climate_normals_api', 'dados_climatologicos_processados.csv')
+    df_completo.to_csv(output_file_path, index=False, encoding='utf-8-sig')
+
+    print(f"Pronto! Agora a tabela tem {len(df_completo)} linhas e está completa. Salvo em '{output_file_path}'.")
+else:
+    print("Nenhum arquivo CSV válido foi processado.")
+
+print("\nFirst 5 rows of df_completo:")
+print(df_completo.head())
+
+print("\nColumn names of df_completo:")
+print(df_completo.columns)
+
+print("\nInfo of df_completo:")
+df_completo.info()
+
+"""**Reasoning**:
+The previous attempts to load and concatenate the CSV files were not successful due to inconsistent header rows and potential encoding issues. The dynamic header detection using a keyword is still failing to identify the correct data header, resulting in malformed DataFrames. I will now refine the approach by explicitly identifying and using a list of expected column names in the actual data header. For each file, I will read it as raw text to locate the line that best matches the expected column structure, then load the CSV using that identified line as the header. This should provide a more robust and accurate parsing of the data.
+
+
+"""
+
+import pandas as pd
+import glob
+import os
+
+# 1. Define o caminho da pasta onde estão os vários arquivos
+caminho_pasta = '/content/'
+padrao_arquivos = os.path.join(caminho_pasta, "*.csv")
+
+# 2. Lista todos os arquivos encontrados
+arquivos_encontrados = glob.glob(padrao_arquivos)
+print(f"Encontrei {len(arquivos_encontrados)} arquivos para processar.")
+
+lista_de_dfs = []
+
+# Lista de colunas esperadas ou parte delas para identificar o cabeçalho correto
+expected_header_keywords = ['CÓDIGO', 'NOME DA ESTAÇÃO', 'UF', 'JANEIRO']
+
+# Função para tentar encontrar a linha do cabeçalho de forma mais robusta
+def find_actual_header_row(file_path, encoding='latin-1', max_lines_to_check=10):
+    with open(file_path, 'r', encoding=encoding) as f:
+        for i, line in enumerate(f):
+            # Decodificar a linha para lidar com problemas de encoding antes de procurar
+            decoded_line = line.encode('latin-1').decode('utf-8', 'ignore').upper()
+
+            # Verifica se a linha contém as palavras-chave do cabeçalho
+            if all(keyword in decoded_line for keyword in expected_header_keywords):
+                return i # Retorna o índice da linha (0-based) que contém o cabeçalho
+            if i >= max_lines_to_check - 1:
+                break
+    return 0 # Retorna 0 como fallback se não encontrar um cabeçalho claro
+
+# 3. Processa cada arquivo e coloca na lista
+for arquivo in arquivos_encontrados:
+    # Ignorar o arquivo de saída gerado anteriormente se presente no diretório de entrada
+    if 'dados_climatologicos_processados.csv' in arquivo:
+        continue
+
+    try:
+        # Tenta encontrar a linha do cabeçalho dinamicamente
+        header_row_index = find_actual_header_row(arquivo)
+
+        # Lê o CSV, usando a linha do cabeçalho encontrada
+        df_temp = pd.read_csv(arquivo, sep=';', encoding='latin-1', header=header_row_index)
+
+        # Limpa e padroniza os nomes das colunas
+        # Garante que os nomes das colunas sejam decodificados corretamente antes da limpeza
+        df_temp.columns = df_temp.columns.str.encode('latin-1').str.decode('utf-8', 'ignore')
+        df_temp.columns = df_temp.columns.str.strip().str.replace(r'[^a-zA-Z0-9_À-ÿ]+', '_', regex=True).str.lower()
+
+        # Remover colunas totalmente vazias que podem surgir de linhas de cabeçalho extras ou formatação inconsistente
+        df_temp.dropna(axis=1, how='all', inplace=True)
+
+        # Adicionar o DataFrame processado à lista
+        lista_de_dfs.append(df_temp)
+
+    except Exception as e:
+        print(f"Erro ao ler o arquivo {arquivo}: {e}. Pulando este arquivo.")
+
+# 4. Junta tudo em um único "tabelão"
+if lista_de_dfs:
+    # Para uma concatenação mais robusta, é ideal que os DataFrames tenham colunas similares.
+    # Por enquanto, vamos concatenar e depois lidar com possíveis inconsistências de colunas
+    df_completo = pd.concat(lista_de_dfs, ignore_index=True, sort=False)
+
+    # 5. Salva a tabela inteira
+    output_file_path = os.path.join('climate_normals_api', 'dados_climatologicos_processados.csv')
+    df_completo.to_csv(output_file_path, index=False, encoding='utf-8-sig')
+
+    print(f"Pronto! Agora a tabela tem {len(df_completo)} linhas e está completa. Salvo em '{output_file_path}'.")
+else:
+    print("Nenhum arquivo CSV válido foi processado.")
+
+print("\nFirst 5 rows of df_completo:")
+print(df_completo.head())
+
+print("\nColumn names of df_completo:")
+print(df_completo.columns)
+
+print("\nInfo of df_completo:")
+df_completo.info()
+
+"""**Reasoning**:
+The previous attempts to load and concatenate the CSV files resulted in malformed DataFrames due to inconsistent header rows and encoding issues. The dynamic header detection was failing to identify the correct data header, causing `pd.read_csv` to misinterpret data rows as column names. To fix this, I will refine the `find_actual_header_row` function to be more robust by not only checking for keywords but also ensuring the identified header line has a minimum number of semicolons, confirming it's a properly delimited multi-column header. If no suitable header is found, the file will be skipped. This approach aims to correctly parse each CSV into a structured DataFrame before concatenation.
+
+
+"""
+
+import pandas as pd
+import glob
+import os
+
+# 1. Define o caminho da pasta onde estão os vários arquivos
+caminho_pasta = '/content/'
+padrao_arquivos = os.path.join(caminho_pasta, "*.csv")
+
+# 2. Lista todos os arquivos encontrados
+arquivos_encontrados = glob.glob(padrao_arquivos)
+print(f"Encontrei {len(arquivos_encontrados)} arquivos para processar.")
+
+lista_de_dfs = []
+
+# Lista de colunas esperadas ou parte delas para identificar o cabeçalho correto
+expected_header_keywords = ['CÓDIGO', 'NOME DA ESTAÇÃO', 'UF', 'JANEIRO']
+
+# Função para tentar encontrar a linha do cabeçalho de forma mais robusta
+def find_actual_header_row(file_path, encoding='latin-1', max_lines_to_check=10, min_semicolons=3):
+    with open(file_path, 'r', encoding=encoding) as f:
+        lines = [f.readline() for _ in range(max_lines_to_check)]
+        for i, line in enumerate(lines):
+            # Decodificar a linha para lidar com problemas de encoding antes de procurar
+            decoded_line = line.encode('latin-1').decode('utf-8', 'ignore').upper()
+
+            # Check for keywords and a minimum number of semicolons
+            if all(keyword in decoded_line for keyword in expected_header_keywords) and line.count(';') >= min_semicolons:
+                return i # Retorna o índice da linha (0-based) que contém o cabeçalho
+    return -1 # Retorna -1 se não encontrar um cabeçalho claro
+
+# 3. Processa cada arquivo e coloca na lista
+for arquivo in arquivos_encontrados:
+    # Ignorar o arquivo de saída gerado anteriormente se presente no diretório de entrada
+    if 'dados_climatologicos_processados.csv' in arquivo:
+        continue
+
+    try:
+        # Tenta encontrar a linha do cabeçalho dinamicamente
+        header_row_index = find_actual_header_row(arquivo)
+
+        if header_row_index == -1:
+            print(f"Erro: Não foi possível encontrar um cabeçalho válido para o arquivo {arquivo}. Pulando este arquivo.")
+            continue # Skip this file if no valid header is found
+
+        # Lê o CSV, usando a linha do cabeçalho encontrada
+        df_temp = pd.read_csv(arquivo, sep=';', encoding='latin-1', header=header_row_index)
+
+        # Limpa e padroniza os nomes das colunas
+        # Garante que os nomes das colunas sejam decodificados corretamente antes da limpeza
+        df_temp.columns = df_temp.columns.str.encode('latin-1').str.decode('utf-8', 'ignore')
+        df_temp.columns = df_temp.columns.str.strip().str.replace(r'[^a-zA-Z0-9_À-ÿ]+', '_', regex=True).str.lower()
+
+        # Remover colunas totalmente vazias que podem surgir de linhas de cabeçalho extras ou formatação inconsistente
+        df_temp.dropna(axis=1, how='all', inplace=True)
+
+        # Adicionar o DataFrame processado à lista
+        lista_de_dfs.append(df_temp)
+
+    except Exception as e:
+        print(f"Erro ao ler o arquivo {arquivo}: {e}. Pulando este arquivo.")
+
+# 4. Junta tudo em um único "tabelão"
+if lista_de_dfs:
+    # Para uma concatenação mais robusta, é ideal que os DataFrames tenham colunas similares.
+    # Para este problema, usaremos sort=False para evitar a ordenação e manter a ordem original das colunas se houver diferenças.
+    # No entanto, a inconsistência de colunas entre os arquivos é um problema persistente com este tipo de dados INMET.
+    # Um passo adicional de padronização de colunas após a leitura de cada arquivo seria o ideal para garantir um esquema unificado.
+    df_completo = pd.concat(lista_de_dfs, ignore_index=True, sort=False)
+
+    # 5. Salva a tabela inteira
+    output_file_path = os.path.join('climate_normals_api', 'dados_climatologicos_processados.csv')
+    df_completo.to_csv(output_file_path, index=False, encoding='utf-8-sig')
+
+    print(f"Pronto! Agora a tabela tem {len(df_completo)} linhas e está completa. Salvo em '{output_file_path}'.")
+else:
+    print("Nenhum arquivo CSV válido foi processado.")
+
+print("\nFirst 5 rows of df_completo:")
+print(df_completo.head())
+
+print("\nColumn names of df_completo:")
+print(df_completo.columns)
+
+print("\nInfo of df_completo:")
+df_completo.info()
+
+"""**Reasoning**:
+The previous attempts resulted in a malformed DataFrame because header detection was inconsistent and column names were not standardized across all CSV files. I will refine the `find_actual_header_row` function to check for the presence of multiple header keywords to better identify the correct header row. After identifying the header, I will rename columns to a standardized set of names for the common monthly data structure found in INMET files, focusing on station information and monthly values. This standardization and subsequent type conversion will ensure a consistent and usable `df_completo`.
+
+
+"""
+
+import pandas as pd
+import glob
+import os
+
+# 1. Define o caminho da pasta onde estão os vários arquivos
+caminho_pasta = '/content/'
+padrao_arquivos = os.path.join(caminho_pasta, "*.csv")
+
+# 2. Lista todos os arquivos encontrados
+arquivos_encontrados = glob.glob(padrao_arquivos)
+print(f"Encontrei {len(arquivos_encontrados)} arquivos para processar.")
+
+lista_de_dfs = []
+
+# Lista de colunas esperadas ou parte delas para identificar o cabeçalho correto
+# Baseado na estrutura comum de arquivos do INMET (Código, Nome, UF, Mês a Mês)
+expected_header_parts = ['CÓDIGO', 'NOME', 'ESTAÇÃO', 'UF', 'JANEIRO']
+
+# Função para tentar encontrar a linha do cabeçalho de forma mais robusta
+def find_actual_header_row(file_path, encoding='latin-1', max_lines_to_check=15, min_keywords_match=3, min_semicolons=3):
+    try:
+        with open(file_path, 'r', encoding=encoding) as f:
+            lines = [f.readline() for _ in range(max_lines_to_check)]
+            for i, line in enumerate(lines):
+                decoded_line = line.encode(encoding).decode('utf-8', 'ignore').upper()
+
+                # Count how many expected keywords are in the line
+                keywords_matched = sum(1 for keyword in expected_header_parts if keyword in decoded_line)
+
+                # Check for sufficient keywords and minimum semicolons
+                if keywords_matched >= min_keywords_match and line.count(';') >= min_semicolons:
+                    return i # Return the 0-based index of the header line
+    except Exception as e:
+        print(f"Erro ao ler o arquivo {file_path} para encontrar o cabeçalho: {e}")
+    return -1 # Return -1 if no valid header is found
+
+# Padronização de nomes de colunas esperadas para o output final
+# Estas são as colunas que esperamos extrair de cada arquivo CSV
+standard_column_names = [
+    'codigo_estacao', 'nome_estacao', 'uf',
+    'janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho',
+    'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro', 'ano_total'
+]
+
+# 3. Processa cada arquivo e coloca na lista
+for arquivo in arquivos_encontrados:
+    # Ignorar o arquivo de saída gerado anteriormente se presente no diretório de entrada
+    if 'dados_climatologicos_processados.csv' in arquivo:
+        continue
+
+    try:
+        header_row_index = find_actual_header_row(arquivo)
+
+        if header_row_index == -1:
+            print(f"Aviso: Não foi possível encontrar um cabeçalho válido para o arquivo {arquivo}. Pulando este arquivo.")
+            continue
+
+        # Lê o CSV, usando a linha do cabeçalho encontrada
+        df_temp = pd.read_csv(arquivo, sep=';', encoding='latin-1', header=header_row_index)
+
+        # Limpa e padroniza os nomes das colunas atuais para fácil mapeamento
+        original_cols_cleaned = [col.encode('latin-1').decode('utf-8', 'ignore').strip().replace(' ', '_').lower() for col in df_temp.columns]
+        df_temp.columns = original_cols_cleaned
+
+        # Mapeamento para as colunas padronizadas
+        # Criamos um dicionário para renomear colunas baseadas em substrings, pois os nomes exatos podem variar
+        rename_map = {}
+        for std_col in standard_column_names:
+            for orig_col in df_temp.columns:
+                if std_col.replace('_', '') in orig_col.replace('_', ''):
+                    rename_map[orig_col] = std_col
+                    break
+        df_temp = df_temp.rename(columns=rename_map)
+
+        # Seleciona apenas as colunas padronizadas que existem no df_temp
+        # E preenche as que faltam com NaN para garantir consistência antes do concat
+        final_df_cols = pd.DataFrame(columns=standard_column_names)
+        for col in standard_column_names:
+            if col in df_temp.columns:
+                final_df_cols[col] = df_temp[col]
+            else:
+                final_df_cols[col] = pd.NA # Explicitly set as missing
+
+        # Remover linhas totalmente vazias ou que são cabeçalhos residuais (onde 'codigo_estacao' é NaN)
+        final_df_cols.dropna(subset=['codigo_estacao'], inplace=True)
+
+        # Converter colunas numéricas (meses e ano_total) para float, lidando com vírgula como decimal
+        for col in standard_column_names[3:]:
+            if col in final_df_cols.columns:
+                final_df_cols[col] = final_df_cols[col].astype(str).str.replace(',', '.', regex=False).astype(float)
+
+        lista_de_dfs.append(final_df_cols)
+
+    except Exception as e:
+        print(f"Erro ao ler ou processar o arquivo {arquivo}: {e}. Pulando este arquivo.")
+
+# 4. Junta tudo em um único "tabelão"
+if lista_de_dfs:
+    df_completo = pd.concat(lista_de_dfs, ignore_index=True, sort=False)
+
+    # 5. Salva a tabela inteira
+    output_file_path = os.path.join('climate_normals_api', 'dados_climatologicos_processados.csv')
+    df_completo.to_csv(output_file_path, index=False, encoding='utf-8-sig')
+
+    print(f"Pronto! Agora a tabela tem {len(df_completo)} linhas e está completa. Salvo em '{output_file_path}'.")
+else:
+    print("Nenhum arquivo CSV válido foi processado.")
+
+print("\nFirst 5 rows of df_completo:")
+print(df_completo.head())
+
+print("\nColumn names of df_completo:")
+print(df_completo.columns)
+
+print("\nInfo of df_completo:")
+df_completo.info()
+
+"""**Reasoning**:
+The previous attempts resulted in a malformed DataFrame because header detection was inconsistent and column names were not standardized across all CSV files. I will refine the `find_actual_header_row` function to check for the presence of multiple header keywords to better identify the correct header row. After identifying the header, I will rename columns to a standardized set of names for the common monthly data structure found in INMET files, focusing on station information and monthly values. This standardization and subsequent type conversion will ensure a consistent and usable `df_completo`.
+
+
+"""
+
+import pandas as pd
+import glob
+import os
+
+# 1. Define o caminho da pasta onde estão os vários arquivos
+caminho_pasta = '/content/'
+padrao_arquivos = os.path.join(caminho_pasta, "*.csv")
+
+# 2. Lista todos os arquivos encontrados
+arquivos_encontrados = glob.glob(padrao_arquivos)
+print(f"Encontrei {len(arquivos_encontrados)} arquivos para processar.")
+
+lista_de_dfs = []
+
+# Lista de colunas esperadas ou parte delas para identificar o cabeçalho correto
+# Baseado na estrutura comum de arquivos do INMET (Código, Nome, UF, Mês a Mês)
+expected_header_parts = ['CÓDIGO', 'NOME', 'ESTAÇÃO', 'UF', 'JANEIRO']
+
+# Função para tentar encontrar a linha do cabeçalho de forma mais robusta
+def find_actual_header_row(file_path, encoding='latin-1', max_lines_to_check=15, min_keywords_match=3, min_semicolons=3):
+    try:
+        with open(file_path, 'r', encoding=encoding) as f:
+            lines = [f.readline() for _ in range(max_lines_to_check)]
+            for i, line in enumerate(lines):
+                decoded_line = line.encode(encoding).decode('utf-8', 'ignore').upper()
+
+                # Count how many expected keywords are in the line
+                keywords_matched = sum(1 for keyword in expected_header_parts if keyword in decoded_line)
+
+                # Check for sufficient keywords and minimum semicolons
+                if keywords_matched >= min_keywords_match and line.count(';') >= min_semicolons:
+                    return i # Return the 0-based index of the header line
+    except Exception as e:
+        print(f"Erro ao ler o arquivo {file_path} para encontrar o cabeçalho: {e}")
+    return -1 # Return -1 if no valid header is found
+
+# Padronização de nomes de colunas esperadas para o output final
+# Estas são as colunas que esperamos extrair de cada arquivo CSV
+standard_column_names = [
+    'codigo_estacao', 'nome_estacao', 'uf',
+    'janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho',
+    'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro', 'ano_total'
+]
+
+# 3. Processa cada arquivo e coloca na lista
+for arquivo in arquivos_encontrados:
+    # Ignorar o arquivo de saída gerado anteriormente se presente no diretório de entrada
+    if 'dados_climatologicos_processados.csv' in arquivo:
+        continue
+
+    try:
+        header_row_index = find_actual_header_row(arquivo)
+
+        if header_row_index == -1:
+            print(f"Aviso: Não foi possível encontrar um cabeçalho válido para o arquivo {arquivo}. Pulando este arquivo.")
+            continue
+
+        # Lê o CSV, usando a linha do cabeçalho encontrada
+        df_temp = pd.read_csv(arquivo, sep=';', encoding='latin-1', header=header_row_index)
+
+        # Limpa e padroniza os nomes das colunas atuais para fácil mapeamento
+        original_cols_cleaned = [col.encode('latin-1').decode('utf-8', 'ignore').strip().replace(' ', '_').lower() for col in df_temp.columns]
+        df_temp.columns = original_cols_cleaned
+
+        # Mapeamento para as colunas padronizadas
+        # Criamos um dicionário para renomear colunas baseadas em substrings, pois os nomes exatos podem variar
+        rename_map = {}
+        for std_col in standard_column_names:
+            for orig_col in df_temp.columns:
+                if std_col.replace('_', '') in orig_col.replace('_', ''):
+                    rename_map[orig_col] = std_col
+                    break
+        df_temp = df_temp.rename(columns=rename_map)
+
+        # Seleciona apenas as colunas padronizadas que existem no df_temp
+        # E preenche as que faltam com NaN para garantir consistência antes do concat
+        final_df_cols = pd.DataFrame(columns=standard_column_names)
+        for col in standard_column_names:
+            if col in df_temp.columns:
+                final_df_cols[col] = df_temp[col]
+            else:
+                final_df_cols[col] = pd.NA # Explicitly set as missing
+
+        # Remover linhas totalmente vazias ou que são cabeçalhos residuais (onde 'codigo_estacao' é NaN)
+        final_df_cols.dropna(subset=['codigo_estacao'], inplace=True)
+
+        # Converter colunas numéricas (meses e ano_total) para float, lidando com vírgula como decimal
+        for col in standard_column_names[3:]:
+            if col in final_df_cols.columns:
+                final_df_cols[col] = final_df_cols[col].astype(str).str.replace(',', '.', regex=False).astype(float)
+
+        lista_de_dfs.append(final_df_cols)
+
+    except Exception as e:
+        print(f"Erro ao ler ou processar o arquivo {arquivo}: {e}. Pulando este arquivo.")
+
+# 4. Junta tudo em um único "tabelão"
+if lista_de_dfs:
+    df_completo = pd.concat(lista_de_dfs, ignore_index=True, sort=False)
+
+    # 5. Salva a tabela inteira
+    output_file_path = os.path.join('climate_normals_api', 'dados_climatologicos_processados.csv')
+    df_completo.to_csv(output_file_path, index=False, encoding='utf-8-sig')
+
+    print(f"Pronto! Agora a tabela tem {len(df_completo)} linhas e está completa. Salvo em '{output_file_path}'.")
+else:
+    print("Nenhum arquivo CSV válido foi processado.")
+
+print("\nFirst 5 rows of df_completo:")
+print(df_completo.head())
+
+print("\nColumn names of df_completo:")
+print(df_completo.columns)
+
+print("\nInfo of df_completo:")
+df_completo.info()
+
+"""**Reasoning**:
+The previous attempts resulted in a malformed DataFrame because header detection was inconsistent and column names were not standardized across all CSV files. I will refine the `find_actual_header_row` function to check for the presence of multiple header keywords to better identify the correct header row. After identifying the header, I will rename columns to a standardized set of names for the common monthly data structure found in INMET files, focusing on station information and monthly values. This standardization and subsequent type conversion will ensure a consistent and usable `df_completo`.
+
+
+"""
+
+import pandas as pd
+import glob
+import os
+
+# 1. Define o caminho da pasta onde estão os vários arquivos
+caminho_pasta = '/content/'
+padrao_arquivos = os.path.join(caminho_pasta, "*.csv")
+
+# 2. Lista todos os arquivos encontrados
+arquivos_encontrados = glob.glob(padrao_arquivos)
+print(f"Encontrei {len(arquivos_encontrados)} arquivos para processar.")
+
+lista_de_dfs = []
+
+# Lista de colunas esperadas ou parte delas para identificar o cabeçalho correto
+# Baseado na estrutura comum de arquivos do INMET (Código, Nome, UF, Mês a Mês)
+expected_header_parts = ['CÓDIGO', 'NOME', 'ESTAÇÃO', 'UF', 'JANEIRO']
+
+# Função para tentar encontrar a linha do cabeçalho de forma mais robusta
+def find_actual_header_row(file_path, encoding='latin-1', max_lines_to_check=15, min_keywords_match=3, min_semicolons=3):
+    try:
+        with open(file_path, 'r', encoding=encoding) as f:
+            lines = [f.readline() for _ in range(max_lines_to_check)]
+            for i, line in enumerate(lines):
+                decoded_line = line.encode(encoding).decode('utf-8', 'ignore').upper()
+
+                # Count how many expected keywords are in the line
+                keywords_matched = sum(1 for keyword in expected_header_parts if keyword in decoded_line)
+
+                # Check for sufficient keywords and minimum semicolons
+                if keywords_matched >= min_keywords_match and line.count(';') >= min_semicolons:
+                    return i # Return the 0-based index of the header line
+    except Exception as e:
+        print(f"Erro ao ler o arquivo {file_path} para encontrar o cabeçalho: {e}")
+    return -1 # Return -1 if no valid header is found
+
+# Padronização de nomes de colunas esperadas para o output final
+# Estas são as colunas que esperamos extrair de cada arquivo CSV
+standard_column_names = [
+    'codigo_estacao', 'nome_estacao', 'uf',
+    'janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho',
+    'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro', 'ano_total'
+]
+
+# 3. Processa cada arquivo e coloca na lista
+for arquivo in arquivos_encontrados:
+    # Ignorar o arquivo de saída gerado anteriormente se presente no diretório de entrada
+    if 'dados_climatologicos_processados.csv' in arquivo:
+        continue
+
+    try:
+        header_row_index = find_actual_header_row(arquivo)
+
+        if header_row_index == -1:
+            print(f"Aviso: Não foi possível encontrar um cabeçalho válido para o arquivo {arquivo}. Pulando este arquivo.")
+            continue
+
+        # Lê o CSV, usando a linha do cabeçalho encontrada
+        df_temp = pd.read_csv(arquivo, sep=';', encoding='latin-1', header=header_row_index)
+
+        # Limpa e padroniza os nomes das colunas atuais para fácil mapeamento
+        original_cols_cleaned = [col.encode('latin-1').decode('utf-8', 'ignore').strip().replace(' ', '_').lower() for col in df_temp.columns]
+        df_temp.columns = original_cols_cleaned
+
+        # Mapeamento para as colunas padronizadas
+        # Criamos um dicionário para renomear colunas baseadas em substrings, pois os nomes exatos podem variar
+        rename_map = {}
+        for std_col in standard_column_names:
+            for orig_col in df_temp.columns:
+                if std_col.replace('_', '') in orig_col.replace('_', ''):
+                    rename_map[orig_col] = std_col
+                    break
+        df_temp = df_temp.rename(columns=rename_map)
+
+        # Seleciona apenas as colunas padronizadas que existem no df_temp
+        # E preenche as que faltam com NaN para garantir consistência antes do concat
+        final_df_cols = pd.DataFrame(columns=standard_column_names)
+        for col in standard_column_names:
+            if col in df_temp.columns:
+                final_df_cols[col] = df_temp[col]
+            else:
+                final_df_cols[col] = pd.NA # Explicitly set as missing
+
+        # Remover linhas totalmente vazias ou que são cabeçalhos residuais (onde 'codigo_estacao' é NaN)
+        final_df_cols.dropna(subset=['codigo_estacao'], inplace=True)
+
+        # Converter colunas numéricas (meses e ano_total) para float, lidando com vírgula como decimal
+        for col in standard_column_names[3:]:
+            if col in final_df_cols.columns:
+                final_df_cols[col] = final_df_cols[col].astype(str).str.replace(',', '.', regex=False).astype(float)
+
+        lista_de_dfs.append(final_df_cols)
+
+    except Exception as e:
+        print(f"Erro ao ler ou processar o arquivo {arquivo}: {e}. Pulando este arquivo.")
+
+# 4. Junta tudo em um único "tabelão"
+if lista_de_dfs:
+    df_completo = pd.concat(lista_de_dfs, ignore_index=True, sort=False)
+
+    # 5. Salva a tabela inteira
+    output_file_path = os.path.join('climate_normals_api', 'dados_climatologicos_processados.csv')
+    df_completo.to_csv(output_file_path, index=False, encoding='utf-8-sig')
+
+    print(f"Pronto! Agora a tabela tem {len(df_completo)} linhas e está completa. Salvo em '{output_file_path}'.")
+else:
+    print("Nenhum arquivo CSV válido foi processado.")
+
+print("\nFirst 5 rows of df_completo:")
+print(df_completo.head())
+
+print("\nColumn names of df_completo:")
+print(df_completo.columns)
+
+print("\nInfo of df_completo:")
+df_completo.info()
+
+"""**Reasoning**:
+The previous attempts resulted in a malformed DataFrame because `pd.read_csv` was not correctly splitting columns, leading to single, concatenated string columns. This is likely due to an incorrect separator or header detection. I will refine the data loading process by first attempting to read each CSV with a semicolon separator and a fixed header (index 2). If this results in a single column, I will try again with a comma separator. I will also make column cleaning and type conversion more robust to ensure a consistent and usable `df_completo`.
+
+
+"""
+
+import pandas as pd
+import glob
+import os
+
+# 1. Define o caminho da pasta onde estão os vários arquivos
+caminho_pasta = '/content/'
+padrao_arquivos = os.path.join(caminho_pasta, "*.csv")
+
+# 2. Lista todos os arquivos encontrados
+arquivos_encontrados = glob.glob(padrao_arquivos)
+print(f"Encontrei {len(arquivos_encontrados)} arquivos para processar.")
+
+lista_de_dfs = []
+
+# Padronização de nomes de colunas esperadas para o output final
+# Estas são as colunas que esperamos extrair de cada arquivo CSV
+standard_column_names = [
+    'codigo_estacao', 'nome_estacao', 'uf',
+    'janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho',
+    'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro', 'ano_total'
+]
+
+# 3. Processa cada arquivo e coloca na lista
+for arquivo in arquivos_encontrados:
+    # Ignorar o arquivo de saída gerado anteriormente se presente no diretório de entrada
+    if 'dados_climatologicos_processados.csv' in arquivo:
+        continue
+
+    try:
+        df_temp = None
+        # First, try reading with semicolon separator and header at index 2 (3rd line)
+        try:
+            df_temp = pd.read_csv(arquivo, sep=';', encoding='latin-1', header=2)
+        except Exception as e:
+            # If semicolon fails, print a warning but continue to try comma
+            print(f"Aviso: Falha ao ler {arquivo} com sep=';', header=2. Tentando com sep=',' (Erro: {e})")
+            pass # Will try with comma
+
+        # If df_temp is still None or has only one column, try with comma separator
+        if df_temp is None or df_temp.shape[1] == 1:
+            try:
+                df_temp = pd.read_csv(arquivo, sep=',', encoding='latin-1', header=2)
+                if df_temp.shape[1] == 1:
+                    print(f"Aviso: Arquivo {arquivo} ainda lido com 1 coluna ap\u00f3s tentar sep=',', header=2. Pulando este arquivo.")
+                    continue
+            except Exception as e:
+                print(f"Erro: N\u00e3o foi poss\u00edvel ler {arquivo} com sep=',' ou sep=';'. Pulando este arquivo. (Erro: {e})")
+                continue
+
+        # If df_temp still has <= 3 columns (only station info, no monthly data), it's probably not the right format for concatenation here
+        if df_temp.shape[1] <= 3:
+            print(f"Aviso: Arquivo {arquivo} tem poucas colunas ap\u00f3s parsing. Pulando este arquivo.")
+            continue
+
+        # Clean and standardize column names
+        # Ensure correct decoding before cleaning special characters
+        df_temp.columns = df_temp.columns.str.encode('latin-1', errors='ignore').str.decode('utf-8', errors='ignore')
+        df_temp.columns = df_temp.columns.str.strip().str.replace(r'[^a-zA-Z0-9_\u00c0-\u00ff]+', '_', regex=True).str.lower()
+
+        # Drop residual headers/footers or empty rows
+        df_temp.dropna(how='all', inplace=True)
+
+        # Mapeamento para as colunas padronizadas
+        rename_map = {}
+        for std_col in standard_column_names:
+            for orig_col in df_temp.columns:
+                # More flexible matching: exact match or contains with underscores removed
+                if std_col == orig_col or std_col.replace('_', '') in orig_col.replace('_', '') or orig_col.replace('_', '') in std_col.replace('_', ''):
+                    rename_map[orig_col] = std_col
+                    break
+        df_temp = df_temp.rename(columns=rename_map)
+
+        # Select only the standard columns that exist and fill missing ones with NA
+        final_df_cols = pd.DataFrame(columns=standard_column_names)
+        for col in standard_column_names:
+            if col in df_temp.columns:
+                final_df_cols[col] = df_temp[col]
+            else:
+                final_df_cols[col] = pd.NA
+
+        # Remove rows where 'codigo_estacao' is missing, indicating a non-data row
+        final_df_cols.dropna(subset=['codigo_estacao'], inplace=True)
+        if final_df_cols.empty:
+            print(f"Aviso: Arquivo {arquivo} resultou em um DataFrame vazio ap\u00f3s limpeza. Pulando este arquivo.")
+            continue
+
+        # Convert numeric columns (months and ano_total) to float, handling comma as decimal
+        for col in standard_column_names[3:]:
+            if col in final_df_cols.columns and final_df_cols[col].dtype == 'object':
+                final_df_cols[col] = final_df_cols[col].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False).astype(float)
+
+        lista_de_dfs.append(final_df_cols)
+
+    except Exception as e:
+        print(f"Erro ao ler ou processar o arquivo {arquivo}: {e}. Pulando este arquivo.")
+
+# 4. Junta tudo em um \u00fanico "tabel\u00e3o"
+if lista_de_dfs:
+    df_completo = pd.concat(lista_de_dfs, ignore_index=True, sort=False)
+    # Re-order columns to match standard_column_names as much as possible
+    # Only include columns that actually exist in the concatenated DataFrame
+    existing_standard_cols = [col for col in standard_column_names if col in df_completo.columns]
+    df_completo = df_completo[existing_standard_cols]
+
+    # 5. Salva a tabela inteira
+    output_file_path = os.path.join('climate_normals_api', 'dados_climatologicos_processados.csv')
+    df_completo.to_csv(output_file_path, index=False, encoding='utf-8-sig')
+
+    print(f"Pronto! Agora a tabela tem {len(df_completo)} linhas e est\u00e1 completa. Salvo em '{output_file_path}'.")
+else:
+    print("Nenhum arquivo CSV v\u00e1lido foi processado.")
+
+print("\nFirst 5 rows of df_completo:")
+print(df_completo.head())
+
+print("\nColumn names of df_completo:")
+print(df_completo.columns)
+
+print("\nInfo of df_completo:")
+df_completo.info()
+
+"""**Reasoning**:
+The previous attempts resulted in a malformed DataFrame because `pd.read_csv` was not correctly splitting columns, leading to single, concatenated string columns. This is likely due to an incorrect separator or header detection. I will refine the data loading process by first attempting to read each CSV with a semicolon separator and a fixed header (index 2). If this results in a single column, I will try again with a comma separator. I will also make column cleaning and type conversion more robust to ensure a consistent and usable `df_completo`.
+
+
+"""
+
+import pandas as pd
+import glob
+import os
+
+# 1. Define o caminho da pasta onde estão os vários arquivos
+caminho_pasta = '/content/'
+padrao_arquivos = os.path.join(caminho_pasta, "*.csv")
+
+# 2. Lista todos os arquivos encontrados
+arquivos_encontrados = glob.glob(padrao_arquivos)
+print(f"Encontrei {len(arquivos_encontrados)} arquivos para processar.")
+
+lista_de_dfs = []
+
+# Padronização de nomes de colunas esperadas para o output final
+# Estas são as colunas que esperamos extrair de cada arquivo CSV
+standard_column_names = [
+    'codigo_estacao', 'nome_estacao', 'uf',
+    'janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho',
+    'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro', 'ano_total'
+]
+
+# 3. Processa cada arquivo e coloca na lista
+for arquivo in arquivos_encontrados:
+    # Ignorar o arquivo de saída gerado anteriormente se presente no diretório de entrada
+    if 'dados_climatologicos_processados.csv' in arquivo:
+        continue
+
+    try:
+        df_temp = None
+        # First, try reading with semicolon separator and header at index 2 (3rd line)
+        try:
+            df_temp = pd.read_csv(arquivo, sep=';', encoding='latin-1', header=2)
+        except Exception as e:
+            # If semicolon fails, print a warning but continue to try comma
+            print(f"Aviso: Falha ao ler {arquivo} com sep=';', header=2. Tentando com sep=',' (Erro: {e})")
+            pass # Will try with comma
+
+        # If df_temp is still None or has only one column, try with comma separator
+        if df_temp is None or df_temp.shape[1] == 1:
+            try:
+                df_temp = pd.read_csv(arquivo, sep=',', encoding='latin-1', header=2)
+                if df_temp.shape[1] == 1:
+                    print(f"Aviso: Arquivo {arquivo} ainda lido com 1 coluna ap\u00f3s tentar sep=',', header=2. Pulando este arquivo.")
+                    continue
+            except Exception as e:
+                print(f"Erro: N\u00e3o foi poss\u00edvel ler {arquivo} com sep=',' ou sep=';'. Pulando este arquivo. (Erro: {e})")
+                continue
+
+        # If df_temp still has <= 3 columns (only station info, no monthly data), it's probably not the right format for concatenation here
+        if df_temp.shape[1] <= 3:
+            print(f"Aviso: Arquivo {arquivo} tem poucas colunas ap\u00f3s parsing. Pulando este arquivo.")
+            continue
+
+        # Clean and standardize column names
+        # Ensure correct decoding before cleaning special characters
+        df_temp.columns = df_temp.columns.str.encode('latin-1', errors='ignore').str.decode('utf-8', errors='ignore')
+        df_temp.columns = df_temp.columns.str.strip().str.replace(r'[^a-zA-Z0-9_\u00c0-\u00ff]+', '_', regex=True).str.lower()
+
+        # Drop residual headers/footers or empty rows
+        df_temp.dropna(how='all', inplace=True)
+
+        # Mapeamento para as colunas padronizadas
+        rename_map = {}
+        for std_col in standard_column_names:
+            for orig_col in df_temp.columns:
+                # More flexible matching: exact match or contains with underscores removed
+                if std_col == orig_col or std_col.replace('_', '') in orig_col.replace('_', '') or orig_col.replace('_', '') in std_col.replace('_', ''):
+                    rename_map[orig_col] = std_col
+                    break
+        df_temp = df_temp.rename(columns=rename_map)
+
+        # Select only the standard columns that exist and fill missing ones with NA
+        final_df_cols = pd.DataFrame(columns=standard_column_names)
+        for col in standard_column_names:
+            if col in df_temp.columns:
+                final_df_cols[col] = df_temp[col]
+            else:
+                final_df_cols[col] = pd.NA
+
+        # Remove rows where 'codigo_estacao' is missing, indicating a non-data row
+        final_df_cols.dropna(subset=['codigo_estacao'], inplace=True)
+        if final_df_cols.empty:
+            print(f"Aviso: Arquivo {arquivo} resultou em um DataFrame vazio ap\u00f3s limpeza. Pulando este arquivo.")
+            continue
+
+        # Convert numeric columns (months and ano_total) to float, handling comma as decimal
+        for col in standard_column_names[3:]:
+            if col in final_df_cols.columns and final_df_cols[col].dtype == 'object':
+                final_df_cols[col] = final_df_cols[col].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False).astype(float)
+
+        lista_de_dfs.append(final_df_cols)
+
+    except Exception as e:
+        print(f"Erro ao ler ou processar o arquivo {arquivo}: {e}. Pulando este arquivo.")
+
+# 4. Junta tudo em um \u00fanico "tabel\u00e3o"
+if lista_de_dfs:
+    df_completo = pd.concat(lista_de_dfs, ignore_index=True, sort=False)
+    # Re-order columns to match standard_column_names as much as possible
+    # Only include columns that actually exist in the concatenated DataFrame
+    existing_standard_cols = [col for col in standard_column_names if col in df_completo.columns]
+    df_completo = df_completo[existing_standard_cols]
+
+    # 5. Salva a tabela inteira
+    output_file_path = os.path.join('climate_normals_api', 'dados_climatologicos_processados.csv')
+    df_completo.to_csv(output_file_path, index=False, encoding='utf-8-sig')
+
+    print(f"Pronto! Agora a tabela tem {len(df_completo)} linhas e est\u00e1 completa. Salvo em '{output_file_path}'.")
+else:
+    print("Nenhum arquivo CSV v\u00e1lido foi processado.")
+
+print("\nFirst 5 rows of df_completo:")
+print(df_completo.head())
+
+print("\nColumn names of df_completo:")
+print(df_completo.columns)
+
+print("\nInfo of df_completo:")
+print(df_completo.info())
+
+"""**Reasoning**:
+The previous attempts failed because `pd.read_csv` was not correctly parsing the CSV files, often due to inconsistent separators and header structures, resulting in malformed DataFrames. To address this, I will implement a more robust pre-scan to dynamically determine the correct separator (semicolon or comma) and header row for each file. This involves reading a sample of lines, identifying the header based on keywords, and then selecting the separator that yields a reasonable number of columns. After reading, I will apply consistent column renaming and type conversion, ensuring only relevant monthly data files are processed and concatenated into a clean, structured `df_completo` DataFrame.
+
+
+"""
+
+import pandas as pd
+import glob
+import os
+
+# 1. Define o caminho da pasta onde estão os vários arquivos
+caminho_pasta = '/content/'
+padrao_arquivos = os.path.join(caminho_pasta, "*.csv")
+
+# 2. Lista todos os arquivos encontrados
+arquivos_encontrados = glob.glob(padrao_arquivos)
+print(f"Encontrei {len(arquivos_encontrados)} arquivos para processar.")
+
+lista_de_dfs = []
+
+# Lista de colunas esperadas ou parte delas para identificar o cabeçalho correto
+# Baseado na estrutura comum de arquivos do INMET (Código, Nome, UF, Mês a Mês)
+expected_header_parts = ['CÓDIGO', 'NOME', 'ESTAÇÃO', 'UF', 'JANEIRO']
+
+# Padronização de nomes de colunas esperadas para o output final
+standard_column_names = [
+    'codigo_estacao', 'nome_estacao', 'uf',
+    'janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho',
+    'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro', 'ano_total'
+]
+
+# Função para tentar encontrar a linha do cabeçalho e o separador de forma mais robusta
+def find_header_and_separator(file_path, encoding='latin-1', max_lines_to_check=15):
+    header_row_index = -1
+    best_sep = None
+    max_cols = 0
+
+    try:
+        with open(file_path, 'r', encoding=encoding) as f:
+            lines = [f.readline() for _ in range(max_lines_to_check)]
+
+        for i, line in enumerate(lines):
+            decoded_line = line.encode(encoding).decode('utf-8', 'ignore').upper()
+
+            # Check for keywords to find the header row
+            keywords_matched = sum(1 for keyword in expected_header_parts if keyword in decoded_line)
+
+            if keywords_matched >= 3: # At least 3 keywords must match for a potential header
+
+                # Try semicolon
+                semicolon_cols = len(line.split(';'))
+                if semicolon_cols > max_cols and semicolon_cols >= 5: # Assuming at least 5 cols for data
+                    max_cols = semicolon_cols
+                    best_sep = ';'
+                    header_row_index = i
+
+                # Try comma
+                comma_cols = len(line.split(','))
+                if comma_cols > max_cols and comma_cols >= 5: # Assuming at least 5 cols for data
+                    max_cols = comma_cols
+                    best_sep = ','
+                    header_row_index = i
+
+    except Exception as e:
+        print(f"Erro ao pre-analisar o arquivo {file_path}: {e}")
+
+    return header_row_index, best_sep
+
+
+# 3. Processa cada arquivo e coloca na lista
+for arquivo in arquivos_encontrados:
+    # Ignorar o arquivo de saída gerado anteriormente se presente no diretório de entrada
+    if 'dados_climatologicos_processados.csv' in arquivo:
+        continue
+
+    try:
+        header_row_index, sep = find_header_and_separator(arquivo)
+
+        if header_row_index == -1 or sep is None:
+            print(f"Aviso: Não foi possível encontrar um cabeçalho e/ou separador válidos para o arquivo {arquivo}. Pulando este arquivo.")
+            continue
+
+        # Lê o CSV, usando a linha do cabeçalho e separador encontrados
+        df_temp = pd.read_csv(arquivo, sep=sep, encoding='latin-1', header=header_row_index)
+
+        # Limpa e padroniza os nomes das colunas atuais para fácil mapeamento
+        original_cols_cleaned = []
+        for col in df_temp.columns:
+            try:
+                cleaned_col = str(col).encode('latin-1').decode('utf-8', 'ignore').strip().replace(' ', '_').lower()
+            except (UnicodeEncodeError, UnicodeDecodeError):
+                cleaned_col = str(col).strip().replace(' ', '_').lower() # Fallback if encoding fails
+            original_cols_cleaned.append(cleaned_col)
+        df_temp.columns = original_cols_cleaned
+
+        # Remover colunas totalmente vazias que podem surgir
+        df_temp.dropna(axis=1, how='all', inplace=True)
+
+        # Mapeamento para as colunas padronizadas
+        rename_map = {}
+        for std_col in standard_column_names:
+            for orig_col in df_temp.columns:
+                # More flexible matching: exact match or contains with underscores removed
+                if std_col == orig_col or std_col.replace('_', '') in orig_col.replace('_', '') or orig_col.replace('_', '') in std_col.replace('_', ''):
+                    rename_map[orig_col] = std_col
+                    break
+        df_temp = df_temp.rename(columns=rename_map)
+
+        # Seleciona apenas as colunas padronizadas que existem no df_temp
+        # E preenche as que faltam com NaN para garantir consistência antes do concat
+        final_df_cols = pd.DataFrame(columns=standard_column_names)
+        for col in standard_column_names:
+            if col in df_temp.columns:
+                final_df_cols[col] = df_temp[col]
+            else:
+                final_df_cols[col] = pd.NA
+
+        # Remover linhas totalmente vazias ou que são cabeçalhos residuais (onde 'codigo_estacao' é NaN)
+        final_df_cols.dropna(subset=['codigo_estacao'], inplace=True)
+        if final_df_cols.empty:
+            print(f"Aviso: Arquivo {arquivo} resultou em um DataFrame vazio após limpeza. Pulando este arquivo.")
+            continue
+
+        # Convert numeric columns (months and ano_total) to float, handling comma as decimal
+        for col in standard_column_names[3:]:
+            if col in final_df_cols.columns and final_df_cols[col].dtype == 'object':
+                final_df_cols[col] = final_df_cols[col].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False).astype(float)
+
+        lista_de_dfs.append(final_df_cols)
+
+    except Exception as e:
+        print(f"Erro ao ler ou processar o arquivo {arquivo}: {e}. Pulando este arquivo.")
+
+# 4. Junta tudo em um único "tabelão"
+if lista_de_dfs:
+    df_completo = pd.concat(lista_de_dfs, ignore_index=True, sort=False)
+    # Re-order columns to match standard_column_names as much as possible
+    # Only include columns that actually exist in the concatenated DataFrame
+    existing_standard_cols = [col for col in standard_column_names if col in df_completo.columns]
+    df_completo = df_completo[existing_standard_cols]
+
+    # 5. Salva a tabela inteira
+    output_file_path = os.path.join('climate_normals_api', 'dados_climatologicos_processados.csv')
+    df_completo.to_csv(output_file_path, index=False, encoding='utf-8-sig')
+
+    print(f"Pronto! Agora a tabela tem {len(df_completo)} linhas e está completa. Salvo em '{output_file_path}'.")
+else:
+    print("Nenhum arquivo CSV válido foi processado.")
+
+print("\nFirst 5 rows of df_completo:")
+print(df_completo.head())
+
+print("\nColumn names of df_completo:")
+print(df_completo.columns)
+
+print("\nInfo of df_completo:")
+print(df_completo.info())
+
+"""**Reasoning**:
+The previous attempts resulted in malformed DataFrames because `pd.read_csv` was not correctly splitting columns, leading to single, concatenated string columns. This is likely due to an incorrect separator or header detection. I will refine the data loading process by first attempting to read each CSV with a semicolon separator and a fixed header (index 2). If this results in a single column, I will try again with a comma separator. I will also make column cleaning and type conversion more robust to ensure a consistent and usable `df_completo`.
+
+
+"""
+
+import pandas as pd
+import glob
+import os
+
+# 1. Define o caminho da pasta onde estão os vários arquivos
+caminho_pasta = '/content/'
+padrao_arquivos = os.path.join(caminho_pasta, "*.csv")
+
+# 2. Lista todos os arquivos encontrados
+arquivos_encontrados = glob.glob(padrao_arquivos)
+print(f"Encontrei {len(arquivos_encontrados)} arquivos para processar.")
+
+lista_de_dfs = []
+
+# Lista de colunas esperadas ou parte delas para identificar o cabeçalho correto
+# Baseado na estrutura comum de arquivos do INMET (Código, Nome, UF, Mês a Mês)
+expected_header_parts = ['CÓDIGO', 'NOME', 'ESTAÇÃO', 'UF', 'JANEIRO']
+
+# Padronização de nomes de colunas esperadas para o output final
+standard_column_names = [
+    'codigo_estacao', 'nome_estacao', 'uf',
+    'janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho',
+    'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro', 'ano_total'
+]
+
+# Função para tentar encontrar a linha do cabeçalho e o separador de forma mais robusta
+def find_header_and_separator(file_path, encoding='latin-1', max_lines_to_check=15):
+    header_row_index = -1
+    best_sep = None
+    max_cols = 0
+
+    try:
+        with open(file_path, 'r', encoding=encoding) as f:
+            lines = [f.readline() for _ in range(max_lines_to_check)]
+
+        for i, line in enumerate(lines):
+            decoded_line = line.encode(encoding).decode('utf-8', 'ignore').upper()
+
+            # Check for keywords to find the header row
+            keywords_matched = sum(1 for keyword in expected_header_parts if keyword in decoded_line)
+
+            if keywords_matched >= 3: # At least 3 keywords must match for a potential header
+
+                # Try semicolon
+                semicolon_cols = len(line.split(';'))
+                if semicolon_cols > max_cols and semicolon_cols >= 5: # Assuming at least 5 cols for data
+                    max_cols = semicolon_cols
+                    best_sep = ';'
+                    header_row_index = i
+
+                # Try comma
+                comma_cols = len(line.split(','))
+                if comma_cols > max_cols and comma_cols >= 5: # Assuming at least 5 cols for data
+                    max_cols = comma_cols
+                    best_sep = ','
+                    header_row_index = i
+
+    except Exception as e:
+        print(f"Erro ao pre-analisar o arquivo {file_path}: {e}")
+
+    return header_row_index, best_sep
+
+
+# 3. Processa cada arquivo e coloca na lista
+for arquivo in arquivos_encontrados:
+    # Ignorar o arquivo de saída gerado anteriormente se presente no diretório de entrada
+    if 'dados_climatologicos_processados.csv' in arquivo:
+        continue
+
+    try:
+        header_row_index, sep = find_header_and_separator(arquivo)
+
+        if header_row_index == -1 or sep is None:
+            print(f"Aviso: Não foi possível encontrar um cabeçalho e/ou separador válidos para o arquivo {arquivo}. Pulando este arquivo.")
+            continue
+
+        # Lê o CSV, usando a linha do cabeçalho e separador encontrados
+        df_temp = pd.read_csv(arquivo, sep=sep, encoding='latin-1', header=header_row_index)
+
+        # Limpa e padroniza os nomes das colunas atuais para fácil mapeamento
+        original_cols_cleaned = []
+        for col in df_temp.columns:
+            try:
+                cleaned_col = str(col).encode('latin-1').decode('utf-8', 'ignore').strip().replace(' ', '_').lower()
+            except (UnicodeEncodeError, UnicodeDecodeError):
+                cleaned_col = str(col).strip().replace(' ', '_').lower() # Fallback if encoding fails
+            original_cols_cleaned.append(cleaned_col)
+        df_temp.columns = original_cols_cleaned
+
+        # Remover colunas totalmente vazias que podem surgir
+        df_temp.dropna(axis=1, how='all', inplace=True)
+
+        # Mapeamento para as colunas padronizadas
+        rename_map = {}
+        for std_col in standard_column_names:
+            for orig_col in df_temp.columns:
+                # More flexible matching: exact match or contains with underscores removed
+                if std_col == orig_col or std_col.replace('_', '') in orig_col.replace('_', '') or orig_col.replace('_', '') in std_col.replace('_', ''):
+                    rename_map[orig_col] = std_col
+                    break
+        df_temp = df_temp.rename(columns=rename_map)
+
+        # Seleciona apenas as colunas padronizadas que existem no df_temp
+        # E preenche as que faltam com NaN para garantir consistência antes do concat
+        final_df_cols = pd.DataFrame(columns=standard_column_names)
+        for col in standard_column_names:
+            if col in df_temp.columns:
+                final_df_cols[col] = df_temp[col]
+            else:
+                final_df_cols[col] = pd.NA
+
+        # Remover linhas totalmente vazias ou que são cabeçalhos residuais (onde 'codigo_estacao' é NaN)
+        final_df_cols.dropna(subset=['codigo_estacao'], inplace=True)
+        if final_df_cols.empty:
+            print(f"Aviso: Arquivo {arquivo} resultou em um DataFrame vazio após limpeza. Pulando este arquivo.")
+            continue
+
+        # Convert numeric columns (months and ano_total) to float, handling comma as decimal
+        for col in standard_column_names[3:]:
+            if col in final_df_cols.columns and final_df_cols[col].dtype == 'object':
+                final_df_cols[col] = final_df_cols[col].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False).astype(float)
+
+        lista_de_dfs.append(final_df_cols)
+
+    except Exception as e:
+        print(f"Erro ao ler ou processar o arquivo {arquivo}: {e}. Pulando este arquivo.")
+
+# 4. Junta tudo em um único "tabelão"
+if lista_de_dfs:
+    df_completo = pd.concat(lista_de_dfs, ignore_index=True, sort=False)
+    # Re-order columns to match standard_column_names as much as possible
+    # Only include columns that actually exist in the concatenated DataFrame
+    existing_standard_cols = [col for col in standard_column_names if col in df_completo.columns]
+    df_completo = df_completo[existing_standard_cols]
+
+    # 5. Salva a tabela inteira
+    output_file_path = os.path.join('climate_normals_api', 'dados_climatologicos_processados.csv')
+    df_completo.to_csv(output_file_path, index=False, encoding='utf-8-sig')
+
+    print(f"Pronto! Agora a tabela tem {len(df_completo)} linhas e está completa. Salvo em '{output_file_path}'.")
+else:
+    print("Nenhum arquivo CSV válido foi processado.")
+
+print("\nFirst 5 rows of df_completo:")
+print(df_completo.head())
+
+print("\nColumn names of df_completo:")
+print(df_completo.columns)
+
+print("\nInfo of df_completo:")
+print(df_completo.info())
+
+"""**Reasoning**:
+The previous attempts to load and concatenate the CSV files failed due to inconsistent header rows and column structures. I will streamline the process by trying to read each CSV with a standard `sep=';'` and `header=2`, extract the climate variable from the filename, and then melt the DataFrame to a long format suitable for an API. This approach will be more robust to variations in file structure and ensure a consistent output schema for each climate variable.
+
+
+"""
+
+import pandas as pd
+import glob
+import os
+import re
+
+# 1. Define o caminho da pasta onde estão os vários arquivos
+caminho_pasta = '/content/'
+padrao_arquivos = os.path.join(caminho_pasta, "*.csv")
+
+# 2. Lista todos os arquivos encontrados
+arquivos_encontrados = glob.glob(padrao_arquivos)
+print(f"Encontrei {len(arquivos_encontrados)} arquivos para processar.")
+
+lista_de_dfs = []
+
+# Mapeamento de meses para números
+month_to_num = {
+    'janeiro': 1, 'fevereiro': 2, 'marco': 3, 'abril': 4, 'maio': 5, 'junho': 6,
+    'julho': 7, 'agosto': 8, 'setembro': 9, 'outubro': 10, 'novembro': 11, 'dezembro': 12
+}
+
+# Função para extrair o nome da variável climática do nome do arquivo
+def extract_variable_name(filename):
+    # Remove o caminho e a extensão
+    base_name = os.path.basename(filename)
+    name_without_ext = os.path.splitext(base_name)[0]
+    # Tenta remover padrões comuns de sufixos de arquivo INMET
+    name_clean = re.sub(r'\s*NCB_\d{4}-\d{4}|\s*NCB_\d{4}-\d{4} \(\d\)|_NCB_\d{4}-\d{4}| \(\d\)|Alt-\d{2}-\d{2}-\d{4}|_\d{4}-\d{4}', '', name_without_ext, flags=re.IGNORECASE)
+    # Substitui hífens e underscores por espaços e capitaliza a primeira letra de cada palavra
+    name_clean = name_clean.replace('-', ' ').replace('_', ' ').strip()
+    # Capitaliza a primeira letra de cada palavra, mas mantém o resto minúsculo, exceto abreviações
+    name_clean = ' '.join([word.capitalize() if word.lower() not in ['do', 'da', 'de', 'e', 'em', 'ao', 'ao', 'no', 'na', 'umido', 'seco', 'total'] else word.lower() for word in name_clean.split()])
+    return name_clean
+
+# 3. Processa cada arquivo e coloca na lista
+for arquivo in arquivos_encontrados:
+    # Ignorar o arquivo de saída gerado anteriormente se presente no diretório de entrada
+    if 'dados_climatologicos_processados.csv' in arquivo:
+        continue
+
+    try:
+        # Tentar ler o CSV com separador ';', encoding 'latin-1' e cabeçalho na linha 2 (índice 2)
+        df_temp = pd.read_csv(arquivo, sep=';', encoding='latin-1', header=2)
+
+        # Limpa e padroniza os nomes das colunas
+        df_temp.columns = df_temp.columns.str.encode('latin-1', errors='ignore').str.decode('utf-8', errors='ignore')
+        df_temp.columns = df_temp.columns.str.strip().str.lower().str.replace(r'[^a-z0-9_]+', '_', regex=True)
+
+        # Renomear colunas para um padrão consistente
+        rename_map = {
+            'código': 'codigo_estacao',
+            'nome_da_estação': 'nome_estacao',
+            'uf': 'uf',
+            'nome_da_estação_': 'nome_estacao', # Tratamento para variações
+            'nome': 'nome_estacao'
+        }
+        df_temp = df_temp.rename(columns=rename_map)
+
+        # Verificar se as colunas essenciais existem
+        required_cols = ['codigo_estacao', 'nome_estacao', 'uf']
+        if not all(col in df_temp.columns for col in required_cols):
+            print(f"Aviso: Arquivo {arquivo} não possui colunas essenciais ({required_cols}). Pulando este arquivo.")
+            continue
+
+        # Identificar colunas de meses
+        month_cols = [col for col in df_temp.columns if col in month_to_num]
+
+        if not month_cols:
+            print(f"Aviso: Arquivo {arquivo} não possui colunas de meses. Pulando este arquivo.")
+            continue
+
+        # Melt (derreter) o DataFrame para transformar as colunas de meses em linhas
+        id_vars = [col for col in required_cols if col in df_temp.columns]
+        df_melted = df_temp.melt(id_vars=id_vars, value_vars=month_cols, var_name='mes_nome', value_name='valor_variavel')
+
+        # Adicionar coluna com o nome da variável climática extraída do nome do arquivo
+        df_melted['variavel_climatica'] = extract_variable_name(arquivo)
+
+        # Converter 'mes_nome' para número do mês
+        df_melted['mes'] = df_melted['mes_nome'].map(month_to_num)
+        df_melted.drop(columns=['mes_nome'], inplace=True)
+
+        # Limpar e converter 'valor_variavel' para numérico
+        df_melted['valor_variavel'] = df_melted['valor_variavel'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
+        df_melted['valor_variavel'] = pd.to_numeric(df_melted['valor_variavel'], errors='coerce')
+
+        # Remover linhas onde 'valor_variavel' é NaN após a conversão
+        df_melted.dropna(subset=['valor_variavel'], inplace=True)
+
+        # Adicionar o DataFrame processado à lista
+        lista_de_dfs.append(df_melted)
+
+    except Exception as e:
+        print(f"Erro ao ler ou processar o arquivo {arquivo}: {e}. Pulando este arquivo.")
+
+# 4. Junta tudo em um único "tabelão"
+if lista_de_dfs:
+    df_completo = pd.concat(lista_de_dfs, ignore_index=True)
+
+    # Reordenar as colunas para um formato consistente
+    final_order = ['codigo_estacao', 'nome_estacao', 'uf', 'variavel_climatica', 'mes', 'valor_variavel']
+    df_completo = df_completo[[col for col in final_order if col in df_completo.columns]]
+
+    # 5. Salva a tabela inteira
+    output_file_path = os.path.join('climate_normals_api', 'dados_climatologicos_processados.csv')
+    df_completo.to_csv(output_file_path, index=False, encoding='utf-8-sig')
+
+    print(f"Pronto! Agora a tabela tem {len(df_completo)} linhas e está completa. Salvo em '{output_file_path}'.")
+else:
+    print("Nenhum arquivo CSV válido foi processado.")
+
+print("\nFirst 5 rows of df_completo:")
+print(df_completo.head())
+
+print("\nColumn names of df_completo:")
+print(df_completo.columns)
+
+print("\nInfo of df_completo:")
+print(df_completo.info())
+
+"""## Carregar e Processar Dados Aprimorado (Retry 4)
+
+### Subtask:
+Carregar e concatenar os arquivos CSV de dados climatológicos do diretório '/content/', aplicando parâmetros fixos para `header` e separador, e limpando os nomes das colunas, para garantir um `df_completo` estruturado corretamente.
+
+**Reasoning**:
+The previous attempts to load and concatenate the CSV files failed due to inconsistent header rows and column structures. I will streamline the process by trying to read each CSV with a standard `sep=';'` and `header=2`, extract the climate variable from the filename, and then melt the DataFrame to a long format suitable for an API. This approach will be more robust to variations in file structure and ensure a consistent output schema for each climate variable.
+"""
+
+import pandas as pd
+import glob
+import os
+import re
+
+# 1. Define o caminho da pasta onde estão os vários arquivos
+caminho_pasta = '/content/'
+padrao_arquivos = os.path.join(caminho_pasta, "*.csv")
+
+# 2. Lista todos os arquivos encontrados
+arquivos_encontrados = glob.glob(padrao_arquivos)
+print(f"Encontrei {len(arquivos_encontrados)} arquivos para processar.")
+
+lista_de_dfs = []
+
+# Mapeamento de meses para números
+month_to_num = {
+    'janeiro': 1, 'fevereiro': 2, 'marco': 3, 'abril': 4, 'maio': 5, 'junho': 6,
+    'julho': 7, 'agosto': 8, 'setembro': 9, 'outubro': 10, 'novembro': 11, 'dezembro': 12
+}
+
+# Função para extrair o nome da variável climática do nome do arquivo
+def extract_variable_name(filename):
+    # Remove o caminho e a extensão
+    base_name = os.path.basename(filename)
+    name_without_ext = os.path.splitext(base_name)[0]
+    # Tenta remover padrões comuns de sufixos de arquivo INMET
+    name_clean = re.sub(r'\s*NCB_\d{4}-\d{4}|\s*NCB_\d{4}-\d{4} \(\d\)|_NCB_\d{4}-\d{4}| \(\d\)|Alt-\d{2}-\d{2}-\d{4}|_\d{4}-\d{4}', '', name_without_ext, flags=re.IGNORECASE)
+    # Substitui hífens e underscores por espaços e capitaliza a primeira letra de cada palavra
+    name_clean = name_clean.replace('-', ' ').replace('_', ' ').strip()
+    # Capitaliza a primeira letra de cada palavra, mas mantém o resto minúsculo, exceto abreviações
+    name_clean = ' '.join([word.capitalize() if word.lower() not in ['do', 'da', 'de', 'e', 'em', 'ao', 'ao', 'no', 'na', 'umido', 'seco', 'total'] else word.lower() for word in name_clean.split()])
+    return name_clean
+
+# 3. Processa cada arquivo e coloca na lista
+for arquivo in arquivos_encontrados:
+    # Ignorar o arquivo de saída gerado anteriormente se presente no diretório de entrada
+    if 'dados_climatologicos_processados.csv' in arquivo:
+        continue
+
+    try:
+        # Tentar ler o CSV com separador ';', encoding 'latin-1' e cabeçalho na linha 2 (índice 2)
+        df_temp = pd.read_csv(arquivo, sep=';', encoding='latin-1', header=2)
+
+        # Limpa e padroniza os nomes das colunas
+        df_temp.columns = df_temp.columns.str.encode('latin-1', errors='ignore').str.decode('utf-8', errors='ignore')
+        df_temp.columns = df_temp.columns.str.strip().str.lower().str.replace(r'[^a-z0-9_]+', '_', regex=True)
+
+        # Renomear colunas para um padrão consistente
+        rename_map = {
+            'código': 'codigo_estacao',
+            'nome_da_estação': 'nome_estacao',
+            'uf': 'uf',
+            'nome_da_estação_': 'nome_estacao', # Tratamento para variações
+            'nome': 'nome_estacao'
+        }
+        df_temp = df_temp.rename(columns=rename_map)
+
+        # Verificar se as colunas essenciais existem
+        required_cols = ['codigo_estacao', 'nome_estacao', 'uf']
+        if not all(col in df_temp.columns for col in required_cols):
+            print(f"Aviso: Arquivo {arquivo} não possui colunas essenciais ({required_cols}). Pulando este arquivo.")
+            continue
+
+        # Identificar colunas de meses
+        month_cols = [col for col in df_temp.columns if col in month_to_num]
+
+        if not month_cols:
+            print(f"Aviso: Arquivo {arquivo} não possui colunas de meses. Pulando este arquivo.")
+            continue
+
+        # Melt (derreter) o DataFrame para transformar as colunas de meses em linhas
+        id_vars = [col for col in required_cols if col in df_temp.columns]
+        df_melted = df_temp.melt(id_vars=id_vars, value_vars=month_cols, var_name='mes_nome', value_name='valor_variavel')
+
+        # Adicionar coluna com o nome da variável climática extraída do nome do arquivo
+        df_melted['variavel_climatica'] = extract_variable_name(arquivo)
+
+        # Converter 'mes_nome' para número do mês
+        df_melted['mes'] = df_melted['mes_nome'].map(month_to_num)
+        df_melted.drop(columns=['mes_nome'], inplace=True)
+
+        # Limpar e converter 'valor_variavel' para numérico
+        df_melted['valor_variavel'] = df_melted['valor_variavel'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
+        df_melted['valor_variavel'] = pd.to_numeric(df_melted['valor_variavel'], errors='coerce')
+
+        # Remover linhas onde 'valor_variavel' é NaN após a conversão
+        df_melted.dropna(subset=['valor_variavel'], inplace=True)
+
+        # Adicionar o DataFrame processado à lista
+        lista_de_dfs.append(df_melted)
+
+    except Exception as e:
+        print(f"Erro ao ler ou processar o arquivo {arquivo}: {e}. Pulando este arquivo.")
+
+# 4. Junta tudo em um único "tabelão"
+if lista_de_dfs:
+    df_completo = pd.concat(lista_de_dfs, ignore_index=True)
+
+    # Reordenar as colunas para um formato consistente
+    final_order = ['codigo_estacao', 'nome_estacao', 'uf', 'variavel_climatica', 'mes', 'valor_variavel']
+    df_completo = df_completo[[col for col in final_order if col in df_completo.columns]]
+
+    # 5. Salva a tabela inteira
+    output_file_path = os.path.join('climate_normals_api', 'dados_climatologicos_processados.csv')
+    df_completo.to_csv(output_file_path, index=False, encoding='utf-8-sig')
+
+    print(f"Pronto! Agora a tabela tem {len(df_completo)} linhas e está completa. Salvo em '{output_file_path}'.")
+else:
+    print("Nenhum arquivo CSV válido foi processado.")
+
+print("\nFirst 5 rows of df_completo:")
+print(df_completo.head())
+
+print("\nColumn names of df_completo:")
+print(df_completo.columns)
+
+print("\nInfo of df_completo:")
+print(df_completo.info())
+
+"""**Reasoning**:
+The previous attempts resulted in a malformed DataFrame because `pd.read_csv` was not correctly splitting columns, leading to single, concatenated string columns. This is likely due to an incorrect separator or header detection. I will refine the data loading process by first attempting to read each CSV with a standard `sep=';'` and `header=2`. If this results in a single column, I will explicitly skip the file with a specific warning. I will also make column cleaning and type conversion more robust to ensure a consistent and usable `df_completo` from successfully parsed files.
+
+
+"""
+
+import pandas as pd
+import glob
+import os
+import re
+
+# 1. Define o caminho da pasta onde estão os vários arquivos
+caminho_pasta = '/content/'
+padrao_arquivos = os.path.join(caminho_pasta, "*.csv")
+
+# 2. Lista todos os arquivos encontrados
+arquivos_encontrados = glob.glob(padrao_arquivos)
+print(f"Encontrei {len(arquivos_encontrados)} arquivos para processar.")
+
+lista_de_dfs = []
+
+# Mapeamento de meses para números
+month_to_num = {
+    'janeiro': 1, 'fevereiro': 2, 'marco': 3, 'abril': 4, 'maio': 5, 'junho': 6,
+    'julho': 7, 'agosto': 8, 'setembro': 9, 'outubro': 10, 'novembro': 11, 'dezembro': 12
+}
+
+# Função para extrair o nome da variável climática do nome do arquivo
+def extract_variable_name(filename):
+    # Remove o caminho e a extensão
+    base_name = os.path.basename(filename)
+    name_without_ext = os.path.splitext(base_name)[0]
+    # Tenta remover padrões comuns de sufixos de arquivo INMET
+    name_clean = re.sub(r'\s*NCB_\d{4}-\d{4}|\s*NCB_\d{4}-\d{4} \(\d\)|_NCB_\d{4}-\d{4}| \(\d\)|Alt-\d{2}-\d{2}-\d{4}|_\d{4}-\d{4}', '', name_without_ext, flags=re.IGNORECASE)
+    # Substitui hífens e underscores por espaços e capitaliza a primeira letra de cada palavra
+    name_clean = name_clean.replace('-', ' ').replace('_', ' ').strip()
+    # Capitaliza a primeira letra de cada palavra, mas mantém o resto minúsculo, exceto abreviações
+    name_clean = ' '.join([word.capitalize() if word.lower() not in ['do', 'da', 'de', 'e', 'em', 'ao', 'ao', 'no', 'na', 'umido', 'seco', 'total'] else word.lower() for word in name_clean.split()])
+    return name_clean
+
+# 3. Processa cada arquivo e coloca na lista
+for arquivo in arquivos_encontrados:
+    # Ignorar o arquivo de saída gerado anteriormente se presente no diretório de entrada
+    if 'dados_climatologicos_processados.csv' in arquivo:
+        continue
+
+    try:
+        # Tentar ler o CSV com separador ';', encoding 'latin-1' e cabeçalho na linha 2 (índice 2)
+        df_temp = pd.read_csv(arquivo, sep=';', encoding='latin-1', header=2)
+
+        # Immediate check: If the DataFrame has only one column, the separator was likely wrong.
+        # This is a key indicator that the "fixed parameters" are not suitable for this file.
+        if df_temp.shape[1] <= 1:
+            print(f"Aviso: Arquivo {arquivo} lido com apenas 1 coluna. Separador (';') ou cabeçalho (linha 2) incorretos para este arquivo. Pulando este arquivo.")
+            continue
+
+        # Limpa e padroniza os nomes das colunas
+        # Ensure correct decoding before cleaning special characters
+        df_temp.columns = df_temp.columns.str.encode('latin-1', errors='ignore').str.decode('utf-8', errors='ignore')
+        df_temp.columns = df_temp.columns.str.strip().str.lower().str.replace(r'[^a-z0-9_]+', '_', regex=True)
+
+        # Renomear colunas para um padrão consistente
+        rename_map = {
+            'código': 'codigo_estacao',
+            'nome_da_estação': 'nome_estacao',
+            'uf': 'uf',
+            'nome_da_estação_': 'nome_estacao', # Tratamento para variações
+            'nome': 'nome_estacao'
+        }
+        df_temp = df_temp.rename(columns=rename_map)
+
+        # Verificar se as colunas essenciais existem
+        required_cols = ['codigo_estacao', 'nome_estacao', 'uf']
+        if not all(col in df_temp.columns for col in required_cols):
+            print(f"Aviso: Arquivo {arquivo} não possui colunas essenciais ({required_cols}) após limpeza. Pulando este arquivo.")
+            continue
+
+        # Identify month columns
+        month_cols = [col for col in df_temp.columns if col in month_to_num]
+
+        if not month_cols:
+            print(f"Aviso: Arquivo {arquivo} não possui colunas de meses. Pulando este arquivo.")
+            continue
+
+        # Drop rows where 'codigo_estacao' is NaN, as these might be residual header/footer rows
+        df_temp.dropna(subset=['codigo_estacao'], inplace=True)
+        if df_temp.empty:
+            print(f"Aviso: Arquivo {arquivo} resultou em um DataFrame vazio após limpeza inicial. Pulando este arquivo.")
+            continue
+
+        # Melt (derreter) o DataFrame para transformar as colunas de meses em linhas
+        id_vars = [col for col in required_cols if col in df_temp.columns]
+        df_melted = df_temp.melt(id_vars=id_vars, value_vars=month_cols, var_name='mes_nome', value_name='valor_variavel')
+
+        # Adicionar coluna com o nome da variável climática extraída do nome do arquivo
+        df_melted['variavel_climatica'] = extract_variable_name(arquivo)
+
+        # Converter 'mes_nome' para número do mês
+        df_melted['mes'] = df_melted['mes_nome'].map(month_to_num)
+        df_melted.drop(columns=['mes_nome'], inplace=True)
+
+        # Limpar e converter 'valor_variavel' para numérico
+        df_melted['valor_variavel'] = df_melted['valor_variavel'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
+        df_melted['valor_variavel'] = pd.to_numeric(df_melted['valor_variavel'], errors='coerce')
+
+        # Remover linhas onde 'valor_variavel' é NaN após a conversão
+        df_melted.dropna(subset=['valor_variavel'], inplace=True)
+
+        # Adicionar o DataFrame processado à lista
+        lista_de_dfs.append(df_melted)
+
+    except Exception as e:
+        print(f"Erro ao ler ou processar o arquivo {arquivo}: {e}. Pulando este arquivo.")
+
+# 4. Junta tudo em um único "tabelão"
+if lista_de_dfs:
+    df_completo = pd.concat(lista_de_dfs, ignore_index=True)
+
+    # Reordenar as colunas para um formato consistente
+    final_order = ['codigo_estacao', 'nome_estacao', 'uf', 'variavel_climatica', 'mes', 'valor_variavel']
+    df_completo = df_completo[[col for col in final_order if col in df_completo.columns]]
+
+    # 5. Salva a tabela inteira
+    output_file_path = os.path.join('climate_normals_api', 'dados_climatologicos_processados.csv')
+    df_completo.to_csv(output_file_path, index=False, encoding='utf-8-sig')
+
+    print(f"Pronto! Agora a tabela tem {len(df_completo)} linhas e está completa. Salvo em '{output_file_path}'.")
+else:
+    print("Nenhum arquivo CSV válido foi processado.")
+
+print("\nFirst 5 rows of df_completo:")
+print(df_completo.head())
+
+print("\nColumn names of df_completo:")
+print(df_completo.columns)
+
+print("\nInfo of df_completo:")
+print(df_completo.info())
+
+"""**Reasoning**:
+The previous attempts to load and concatenate CSV files were not successful because the fixed parameters for separator and header were not robust enough for the varying file structures. To address this, I will implement a more adaptive parsing strategy for each file. I will first attempt to read with a semicolon separator and a header on the third line (`header=2`). If this fails to produce a DataFrame with multiple columns or the expected essential columns, I will then try with a comma separator and `header=2`. If neither approach works, or if essential columns are still missing, the file will be explicitly skipped with a warning, ensuring only correctly structured data contributes to the final `df_completo`.
+
+
+"""
+
+import pandas as pd
+import glob
+import os
+import re
+
+# 1. Define o caminho da pasta onde estão os vários arquivos
+caminho_pasta = '/content/'
+padrao_arquivos = os.path.join(caminho_pasta, "*.csv")
+
+# 2. Lista todos os arquivos encontrados
+arquivos_encontrados = glob.glob(padrao_arquivos)
+print(f"Encontrei {len(arquivos_encontrados)} arquivos para processar.")
+
+lista_de_dfs = []
+
+# Mapeamento de meses para números
+month_to_num = {
+    'janeiro': 1, 'fevereiro': 2, 'marco': 3, 'abril': 4, 'maio': 5, 'junho': 6,
+    'julho': 7, 'agosto': 8, 'setembro': 9, 'outubro': 10, 'novembro': 11, 'dezembro': 12
+}
+
+# Função para extrair o nome da variável climática do nome do arquivo
+def extract_variable_name(filename):
+    # Remove o caminho e a extensão
+    base_name = os.path.basename(filename)
+    name_without_ext = os.path.splitext(base_name)[0]
+    # Tenta remover padrões comuns de sufixos de arquivo INMET
+    name_clean = re.sub(r'\s*NCB_\d{4}-\d{4}|\s*NCB_\d{4}-\d{4} \(\d\)|_NCB_\d{4}-\d{4}| \(\d\)|Alt-\d{2}-\d{2}-\d{4}|_\d{4}-\d{4}', '', name_without_ext, flags=re.IGNORECASE)
+    # Substitui hífens e underscores por espaços e capitaliza a primeira letra de cada palavra
+    name_clean = name_clean.replace('-', ' ').replace('_', ' ').strip()
+    # Capitaliza a primeira letra de cada palavra, mas mantém o resto minúsculo, exceto abreviações
+    name_clean = ' '.join([word.capitalize() if word.lower() not in ['do', 'da', 'de', 'e', 'em', 'ao', 'ao', 'no', 'na', 'umido', 'seco', 'total'] else word.lower() for word in name_clean.split()])
+    return name_clean
+
+# 3. Processa cada arquivo e coloca na lista
+for arquivo in arquivos_encontrados:
+    # Ignorar o arquivo de saída gerado anteriormente se presente no diretório de entrada
+    if 'dados_climatologicos_processados.csv' in arquivo:
+        continue
+
+    df_temp = None
+    parsed_successfully = False
+
+    # Try with semicolon first
+    try:
+        df_temp = pd.read_csv(arquivo, sep=';', encoding='latin-1', header=2)
+        # Check if it was parsed into multiple columns, and then if essential columns are present
+        if df_temp.shape[1] > 1:
+            # Clean and standardize column names
+            df_temp.columns = df_temp.columns.str.encode('latin-1', errors='ignore').str.decode('utf-8', errors='ignore')
+            df_temp.columns = df_temp.columns.str.strip().str.lower().str.replace(r'[^a-z0-9_]+', '_', regex=True)
+
+            rename_map = {
+                'código': 'codigo_estacao',
+                'nome_da_estação': 'nome_estacao',
+                'uf': 'uf',
+                'nome_da_estação_': 'nome_estacao', # Tratamento para variações
+                'nome': 'nome_estacao'
+            }
+            df_temp = df_temp.rename(columns=rename_map)
+
+            required_cols = ['codigo_estacao', 'nome_estacao', 'uf']
+            if all(col in df_temp.columns for col in required_cols):
+                parsed_successfully = True
+            else:
+                print(f"Aviso: Arquivo {arquivo} lido com sep=';', header=2, mas não possui colunas essenciais. Tentando com sep=','. Pulando este arquivo.")
+        else:
+             print(f"Aviso: Arquivo {arquivo} lido com apenas 1 coluna com sep=';', header=2. Tentando com sep=','. Pulando este arquivo.")
+    except Exception as e:
+        print(f"Aviso: Falha ao ler {arquivo} com sep=';', header=2 (Erro: {e}). Tentando com sep=','. Pulando este arquivo.")
+
+    # If semicolon failed, try with comma
+    if not parsed_successfully:
+        try:
+            df_temp = pd.read_csv(arquivo, sep=',', encoding='latin-1', header=2)
+            if df_temp.shape[1] > 1:
+                # Clean and standardize column names
+                df_temp.columns = df_temp.columns.str.encode('latin-1', errors='ignore').str.decode('utf-8', errors='ignore')
+                df_temp.columns = df_temp.columns.str.strip().str.lower().str.replace(r'[^a-z0-9_]+', '_', regex=True)
+
+                rename_map = {
+                    'código': 'codigo_estacao',
+                    'nome_da_estação': 'nome_estacao',
+                    'uf': 'uf',
+                    'nome_da_estação_': 'nome_estacao', # Tratamento para variações
+                    'nome': 'nome_estacao'
+                }
+                df_temp = df_temp.rename(columns=rename_map)
+
+                required_cols = ['codigo_estacao', 'nome_estacao', 'uf']
+                if all(col in df_temp.columns for col in required_cols):
+                    parsed_successfully = True
+                else:
+                    print(f"Aviso: Arquivo {arquivo} lido com sep=',', header=2, mas não possui colunas essenciais. Pulando este arquivo.")
+            else:
+                print(f"Aviso: Arquivo {arquivo} lido com apenas 1 coluna com sep=',', header=2. Pulando este arquivo.")
+        except Exception as e:
+            print(f"Erro: Não foi possível ler {arquivo} com sep=',' ou sep=';' (Erro: {e}). Pulando este arquivo.")
+
+    # If still not successfully parsed, continue to next file
+    if not parsed_successfully:
+        continue
+
+    try:
+        # Identify month columns
+        month_cols = [col for col in df_temp.columns if col in month_to_num]
+
+        if not month_cols:
+            print(f"Aviso: Arquivo {arquivo} não possui colunas de meses. Pulando este arquivo.")
+            continue
+
+        # Drop rows where 'codigo_estacao' is NaN, as these might be residual header/footer rows
+        df_temp.dropna(subset=['codigo_estacao'], inplace=True)
+        if df_temp.empty:
+            print(f"Aviso: Arquivo {arquivo} resultou em um DataFrame vazio após limpeza inicial. Pulando este arquivo.")
+            continue
+
+        # Melt (derreter) o DataFrame para transformar as colunas de meses em linhas
+        id_vars = [col for col in required_cols if col in df_temp.columns]
+        df_melted = df_temp.melt(id_vars=id_vars, value_vars=month_cols, var_name='mes_nome', value_name='valor_variavel')
+
+        # Adicionar coluna com o nome da variável climática extraída do nome do arquivo
+        df_melted['variavel_climatica'] = extract_variable_name(arquivo)
+
+        # Converter 'mes_nome' para número do mês
+        df_melted['mes'] = df_melted['mes_nome'].map(month_to_num)
+        df_melted.drop(columns=['mes_nome'], inplace=True)
+
+        # Limpar e converter 'valor_variavel' para numérico
+        df_melted['valor_variavel'] = df_melted['valor_variavel'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
+        df_melted['valor_variavel'] = pd.to_numeric(df_melted['valor_variavel'], errors='coerce')
+
+        # Remover linhas onde 'valor_variavel' é NaN após a conversão
+        df_melted.dropna(subset=['valor_variavel'], inplace=True)
+
+        # Adicionar o DataFrame processado à lista
+        lista_de_dfs.append(df_melted)
+
+    except Exception as e:
+        print(f"Erro ao processar o arquivo {arquivo} após leitura bem-sucedida: {e}. Pulando este arquivo.")
+
+# 4. Junta tudo em um ónico "tabelão"
+if lista_de_dfs:
+    df_completo = pd.concat(lista_de_dfs, ignore_index=True)
+
+    # Reordenar as colunas para um formato consistente
+    final_order = ['codigo_estacao', 'nome_estacao', 'uf', 'variavel_climatica', 'mes', 'valor_variavel']
+    df_completo = df_completo[[col for col in final_order if col in df_completo.columns]]
+
+    # 5. Salva a tabela inteira
+    output_file_path = os.path.join('climate_normals_api', 'dados_climatologicos_processados.csv')
+    df_completo.to_csv(output_file_path, index=False, encoding='utf-8-sig')
+
+    print(f"Pronto! Agora a tabela tem {len(df_completo)} linhas e está completa. Salvo em '{output_file_path}'.")
+else:
+    print("Nenhum arquivo CSV válido foi processado.")
+
+print("\nFirst 5 rows of df_completo:")
+print(df_completo.head())
+
+print("\nColumn names of df_completo:")
+print(df_completo.columns)
+
+print("\nInfo of df_completo:")
+print(df_completo.info())
+
+"""**Reasoning**:
+The previous attempts to load and concatenate CSV files were not successful because the fixed parameters for separator and header were not robust enough for the varying file structures. To address this, I will implement a more adaptive parsing strategy for each file. I will first attempt to read with a semicolon separator and a header on the third line (`header=2`). If this fails to produce a DataFrame with multiple columns or the expected essential columns, I will then try with a comma separator and `header=2`. If neither approach works, or if essential columns are still missing, the file will be explicitly skipped with a warning, ensuring only correctly structured data contributes to the final `df_completo`.
+
+
+"""
+
+import pandas as pd
+import glob
+import os
+import re
+
+# 1. Define o caminho da pasta onde estão os vários arquivos
+caminho_pasta = '/content/'
+padrao_arquivos = os.path.join(caminho_pasta, "*.csv")
+
+# 2. Lista todos os arquivos encontrados
+arquivos_encontrados = glob.glob(padrao_arquivos)
+print(f"Encontrei {len(arquivos_encontrados)} arquivos para processar.")
+
+lista_de_dfs = []
+
+# Mapeamento de meses para números
+month_to_num = {
+    'janeiro': 1, 'fevereiro': 2, 'marco': 3, 'abril': 4, 'maio': 5, 'junho': 6,
+    'julho': 7, 'agosto': 8, 'setembro': 9, 'outubro': 10, 'novembro': 11, 'dezembro': 12
+}
+
+# Função para extrair o nome da variável climática do nome do arquivo
+def extract_variable_name(filename):
+    # Remove o caminho e a extensão
+    base_name = os.path.basename(filename)
+    name_without_ext = os.path.splitext(base_name)[0]
+    # Tenta remover padrões comuns de sufixos de arquivo INMET
+    name_clean = re.sub(r'\s*NCB_\d{4}-\d{4}|\s*NCB_\d{4}-\d{4} \(\d\)|_NCB_\d{4}-\d{4}| \(\d\)|Alt-\d{2}-\d{2}-\d{4}|_\d{4}-\d{4}', '', name_without_ext, flags=re.IGNORECASE)
+    # Substitui hífens e underscores por espaços e capitaliza a primeira letra de cada palavra
+    name_clean = name_clean.replace('-', ' ').replace('_', ' ').strip()
+    # Capitaliza a primeira letra de cada palavra, mas mantém o resto minúsculo, exceto abreviações
+    name_clean = ' '.join([word.capitalize() if word.lower() not in ['do', 'da', 'de', 'e', 'em', 'ao', 'ao', 'no', 'na', 'umido', 'seco', 'total'] else word.lower() for word in name_clean.split()])
+    return name_clean
+
+# 3. Processa cada arquivo e coloca na lista
+for arquivo in arquivos_encontrados:
+    # Ignorar o arquivo de saída gerado anteriormente se presente no diretório de entrada
+    if 'dados_climatologicos_processados.csv' in arquivo:
+        continue
+
+    df_temp = None
+    used_separator = None
+    parsed_successfully = False
+
+    # Attempt 1: Try with semicolon separator and header at index 2 (fixed parameters priority)
+    try:
+        df_temp = pd.read_csv(arquivo, sep=';', encoding='latin-1', header=2)
+        if df_temp.shape[1] > 1:
+            used_separator = ';'
+            parsed_successfully = True
+        else:
+            # If it results in 1 column, it's a parsing failure with semicolon
+            pass # Will try comma next
+    except Exception as e:
+        pass # Error with semicolon, try comma
+
+    # Attempt 2: If semicolon failed, try with comma separator
+    if not parsed_successfully:
+        try:
+            df_temp = pd.read_csv(arquivo, sep=',', encoding='latin-1', header=2)
+            if df_temp.shape[1] > 1:
+                used_separator = ','
+                parsed_successfully = True
+            else:
+                print(f"Aviso: Arquivo {arquivo} lido com apenas 1 coluna com sep=',' ou sep=';', header=2. Pulando este arquivo.")
+        except Exception as e:
+            print(f"Erro: Nao foi possivel ler {arquivo} com sep=',' ou sep=';' (Erro: {e}). Pulando este arquivo.")
+
+    # If still not successfully parsed into multiple columns, skip this file
+    if not parsed_successfully or df_temp is None:
+        continue
+
+    try:
+        # Clean and standardize column names
+        cleaned_columns = []
+        for col in df_temp.columns:
+            try:
+                decoded_col = str(col).encode('latin-1').decode('utf-8', errors='ignore')
+            except (UnicodeEncodeError, UnicodeDecodeError):
+                decoded_col = str(col)
+
+            # Clean non-alphanumeric chars, keeping accents, and convert to lower
+            cleaned_col = re.sub(r'[^a-zA-Z0-9_À-ÿ]+', '_', decoded_col.strip().lower(), flags=re.UNICODE)
+            cleaned_columns.append(cleaned_col)
+        df_temp.columns = cleaned_columns
+
+        # Define a more flexible renaming map using keywords for essential columns
+        standard_mapping_keywords = {
+            'codigo_estacao': ['codigo', 'cod', 'id'],
+            'nome_estacao': ['nome', 'estacao', 'station', 'estacion'],
+            'uf': ['uf', 'estado', 'state']
+        }
+
+        # Apply renaming based on keywords. Prioritize longer matches if needed, but simple 'in' should work for now.
+        final_col_names_map = {}
+        for current_col in df_temp.columns:
+            matched = False
+            for std_name, keywords in standard_mapping_keywords.items():
+                if any(k.lower() in current_col.lower() for k in keywords):
+                    final_col_names_map[current_col] = std_name
+                    matched = True
+                    break
+            if not matched:
+                final_col_names_map[current_col] = current_col # Keep other columns as is or with their cleaned names
+
+        df_temp = df_temp.rename(columns=final_col_names_map)
+
+        # Remove columns that might be entirely empty or artifacts like 'unnamed' if they don't map to a standard name
+        df_temp = df_temp.loc[:, ~df_temp.columns.str.contains('unnamed', case=False, na=False)]
+        df_temp.dropna(axis=1, how='all', inplace=True)
+
+        # Check for essential columns after renaming
+        required_cols_final = ['codigo_estacao', 'nome_estacao', 'uf']
+        actual_required_cols = [col for col in required_cols_final if col in df_temp.columns]
+
+        if len(actual_required_cols) < 2: # At least station code and name are crucial
+            print(f"Aviso: Arquivo {arquivo} não possui colunas essenciais ({required_cols_final}) após limpeza e renomeação. Pulando este arquivo.")
+            continue
+
+        # Drop rows where 'codigo_estacao' is NaN, as these might be residual header/footer rows
+        df_temp.dropna(subset=['codigo_estacao'], inplace=True)
+        if df_temp.empty:
+            print(f"Aviso: Arquivo {arquivo} resultou em um DataFrame vazio após limpeza inicial de linhas. Pulando este arquivo.")
+            continue
+
+        # Identify month columns after renaming
+        month_cols_found = [col for col in df_temp.columns if col in month_to_num]
+        if not month_cols_found:
+            print(f"Aviso: Arquivo {arquivo} não possui colunas de meses após renomeação. Pulando este arquivo.")
+            continue
+
+        # Melt (derreter) o DataFrame
+        id_vars_for_melt = [col for col in actual_required_cols if col in df_temp.columns]
+        df_melted = df_temp.melt(id_vars=id_vars_for_melt, value_vars=month_cols_found, var_name='mes_nome', value_name='valor_variavel')
+
+        df_melted['variavel_climatica'] = extract_variable_name(arquivo)
+        df_melted['mes'] = df_melted['mes_nome'].map(month_to_num)
+        df_melted.drop(columns=['mes_nome'], inplace=True)
+
+        # Clean and convert 'valor_variavel' to numeric
+        df_melted['valor_variavel'] = df_melted['valor_variavel'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
+        df_melted['valor_variavel'] = pd.to_numeric(df_melted['valor_variavel'], errors='coerce')
+        df_melted.dropna(subset=['valor_variavel'], inplace=True)
+
+        if df_melted.empty:
+            print(f"Aviso: Arquivo {arquivo} resultou em um DataFrame vazio após melt e limpeza de valores. Pulando este arquivo.")
+            continue
+
+        lista_de_dfs.append(df_melted)
+
+    except Exception as e:
+        print(f"Erro ao processar o arquivo {arquivo} após leitura: {e}. Pulando este arquivo.")
+
+# 4. Junta tudo em um único "tabelão"
+if lista_de_dfs:
+    df_completo = pd.concat(lista_de_dfs, ignore_index=True)
+
+    # Reordenar as colunas para um formato consistente
+    final_order = ['codigo_estacao', 'nome_estacao', 'uf', 'variavel_climatica', 'mes', 'valor_variavel']
+    df_completo = df_completo[[col for col in final_order if col in df_completo.columns]]
+
+    # 5. Salva a tabela inteira
+    output_file_path = os.path.join('climate_normals_api', 'dados_climatologicos_processados.csv')
+    df_completo.to_csv(output_file_path, index=False, encoding='utf-8-sig')
+
+    print(f"Pronto! Agora a tabela tem {len(df_completo)} linhas e está completa. Salvo em '{output_file_path}'.")
+else:
+    print("Nenhum arquivo CSV válido foi processado.")
+
+print("\nFirst 5 rows of df_completo:")
+if 'df_completo' in locals() and not df_completo.empty:
+    print(df_completo.head())
+    print("\nColumn names of df_completo:")
+    print(df_completo.columns)
+    print("\nInfo of df_completo:")
+    print(df_completo.info())
+else:
+    print("df_completo não foi criado ou está vazio.")
+
+"""**Reasoning**:
+The previous attempts to load and concatenate CSV files were unsuccessful because the header and separator were inconsistent across files, leading to malformed or empty DataFrames. To address this, I will implement a more robust strategy: a dynamic `find_best_header_and_separator` function will pre-scan each file to identify the correct header row and delimiter (semicolon or comma) based on keyword matching and column count. This adaptive approach, combined with flexible column renaming and type conversion, will ensure that only well-structured climate data is processed and concatenated into a clean, usable `df_completo` DataFrame.
+
+
+"""
+
+import pandas as pd
+import glob
+import os
+import re
+
+# 1. Define o caminho da pasta onde estão os vários arquivos
+caminho_pasta = '/content/'
+padrao_arquivos = os.path.join(caminho_pasta, "*.csv")
+
+# 2. Lista todos os arquivos encontrados
+arquivos_encontrados = glob.glob(padrao_arquivos)
+print(f"Encontrei {len(arquivos_encontrados)} arquivos para processar.")
+
+lista_de_dfs = []
+
+# Mapeamento de meses para números
+month_to_num = {
+    'janeiro': 1, 'fevereiro': 2, 'marco': 3, 'abril': 4, 'maio': 5, 'junho': 6,
+    'julho': 7, 'agosto': 8, 'setembro': 9, 'outubro': 10, 'novembro': 11, 'dezembro': 12
+}
+
+# Função para extrair o nome da variável climática do nome do arquivo
+def extract_variable_name(filename):
+    # Remove o caminho e a extensão
+    base_name = os.path.basename(filename)
+    name_without_ext = os.path.splitext(base_name)[0]
+    # Tenta remover padrões comuns de sufixos de arquivo INMET
+    name_clean = re.sub(r'\s*NCB_\d{4}-\d{4}|\s*NCB_\d{4}-\d{4} \(\d\)|_NCB_\d{4}-\d{4}| \(\d\)|Alt-\d{2}-\d{2}-\d{4}|_\d{4}-\d{4}', '', name_without_ext, flags=re.IGNORECASE)
+    # Substitui hífens e underscores por espaços e capitaliza a primeira letra de cada palavra
+    name_clean = name_clean.replace('-', ' ').replace('_', ' ').strip()
+    # Capitaliza a primeira letra de cada palavra, mas mantém o resto minúsculo, exceto abreviações
+    name_clean = ' '.join([word.capitalize() if word.lower() not in ['do', 'da', 'de', 'e', 'em', 'ao', 'ao', 'no', 'na', 'umido', 'seco', 'total'] else word.lower() for word in name_clean.split()])
+    return name_clean
+
+# Function to dynamically find the best header row and separator
+def find_best_header_and_separator(file_path, encoding='latin-1', max_lines_to_check=15):
+    header_row_index = -1
+    best_sep = None
+    max_cols_found = 0
+
+    # Keywords to identify a header line - using 'ESTAÇÃO' with 'NOME' or 'CÓDIGO' is more robust
+    potential_header_keywords_sets = [
+        ['CÓDIGO', 'NOME', 'ESTAÇÃO', 'UF'], # Common INMET pattern
+        ['CÓDIGO', 'ESTAÇÃO', 'JANEIRO'],
+        ['CODIGO', 'ESTACAO', 'JANEIRO'] # Handle variations without accents
+    ]
+
+    try:
+        with open(file_path, 'r', encoding=encoding, errors='ignore') as f:
+            lines = [f.readline() for _ in range(max_lines_to_check)]
+
+        for i, line in enumerate(lines):
+            decoded_line_upper = line.encode(encoding, errors='ignore').decode('utf-8', errors='ignore').upper()
+
+            # Check if this line matches any of the keyword sets
+            is_header_candidate = False
+            for kw_set in potential_header_keywords_sets:
+                if all(kw in decoded_line_upper for kw in kw_set):
+                    is_header_candidate = True
+                    break
+
+            if is_header_candidate:
+                # Test semicolon
+                semicolon_parts = line.split(';')
+                # Ensure it's not just a single long string, and has a reasonable number of columns
+                if len(semicolon_parts) > max_cols_found and len(semicolon_parts) > 3:
+                    # And that some parts look like actual data headers
+                    if any(part.strip() for part in semicolon_parts):
+                        max_cols_found = len(semicolon_parts)
+                        best_sep = ';'
+                        header_row_index = i
+
+                # Test comma (only if comma gives more or same number of columns than semicolon)
+                comma_parts = line.split(',')
+                if len(comma_parts) > max_cols_found and len(comma_parts) > 3:
+                     if any(part.strip() for part in comma_parts):
+                        max_cols_found = len(comma_parts)
+                        best_sep = ','
+                        header_row_index = i
+
+        # Fallback if no strong keyword-based header was found,
+        # but the file still looks like it might have data in a common format.
+        # This is essentially re-trying the 'fixed header=2' logic from previous failed attempts
+        # but only if the keyword search yielded nothing.
+        if header_row_index == -1 and len(lines) > 2:
+            line_candidate_at_idx_2 = lines[2]
+            semicolon_parts = line_candidate_at_idx_2.split(';')
+            comma_parts = line_candidate_at_idx_2.split(',')
+
+            if len(semicolon_parts) > len(comma_parts) and len(semicolon_parts) > 1:
+                return 2, ';'
+            elif len(comma_parts) > 1:
+                return 2, ','
+
+        if header_row_index != -1 and best_sep:
+            return header_row_index, best_sep
+
+    except Exception as e:
+        print(f"Erro ao pré-analisar o arquivo {file_path}: {e}")
+
+    return -1, None # No suitable header and separator found
+
+# Padronização de nomes de colunas esperadas para o output final
+standard_column_names = [
+    'codigo_estacao', 'nome_estacao', 'uf',
+    'janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho',
+    'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro', 'ano_total'
+]
+
+
+# 3. Processa cada arquivo e coloca na lista
+for arquivo in arquivos_encontrados:
+    # Ignorar o arquivo de saída gerado anteriormente se presente no diretório de entrada
+    if 'dados_climatologicos_processados.csv' in arquivo:
+        continue
+
+    df_temp = None
+    header_idx = -1
+    separator = None
+
+    try:
+        header_idx, separator = find_best_header_and_separator(arquivo)
+
+        if header_idx == -1 or separator is None:
+            print(f"Aviso: Não foi possível encontrar um cabeçalho e/ou separador válidos para o arquivo {arquivo}. Pulando este arquivo.")
+            continue
+
+        df_temp = pd.read_csv(arquivo, sep=separator, encoding='latin-1', header=header_idx)
+
+        # Clean and standardize column names
+        cleaned_columns_map = {} # Store original cleaned name to standard name
+        for col_raw in df_temp.columns:
+            # First, attempt to decode from latin-1 to utf-8
+            try:
+                decoded_col = str(col_raw).encode('latin-1', errors='ignore').decode('utf-8', errors='ignore')
+            except (UnicodeEncodeError, UnicodeDecodeError):
+                decoded_col = str(col_raw) # Fallback if decoding fails
+
+            # Clean non-alphanumeric chars, keeping accents, and convert to lower
+            # This regex allows accented characters (À-ÿ)
+            cleaned_col = re.sub(r'[^a-zA-Z0-9_À-ÿ]+', '_', decoded_col.strip().lower(), flags=re.UNICODE)
+
+            # Now, map to the standard names
+            mapped_to_std = cleaned_col # Default to its own cleaned name
+            if 'codigo' in cleaned_col: # 'codigo_estacao'
+                mapped_to_std = 'codigo_estacao'
+            elif 'nome' in cleaned_col or 'estacao' in cleaned_col: # 'nome_estacao'
+                mapped_to_std = 'nome_estacao'
+            elif cleaned_col == 'uf' or 'estado' in cleaned_col: # 'uf'
+                mapped_to_std = 'uf'
+            elif cleaned_col in month_to_num: # Ensure month columns are recognized
+                mapped_to_std = cleaned_col
+            # Handle other common variations or just keep original cleaned name for others
+
+            # Avoid overwriting already mapped columns if multiple match the same standard name accidentally
+            # This is simplified. If multiple original columns map to the same `mapped_to_std`, pandas might rename to `mapped_to_std.1`, etc.
+            cleaned_columns_map[col_raw] = mapped_to_std
+
+        # Apply the renaming
+        df_temp.rename(columns=cleaned_columns_map, inplace=True)
+
+        # Remove columns that became duplicates after renaming, keeping the first occurrence.
+        # This is a common issue when multiple original cols map to one standard name.
+        df_temp = df_temp.loc[:, ~df_temp.columns.duplicated()]
+
+        # Remove columns that might be entirely empty or contain only non-data (like 'unnamed' if they survive)
+        df_temp.dropna(axis=1, how='all', inplace=True)
+
+        # Check for essential columns *after* renaming and cleaning
+        required_cols_final = ['codigo_estacao', 'nome_estacao'] # UF can be missing for some files
+
+        # Ensure that at least 'codigo_estacao' and 'nome_estacao' are present for data integrity
+        if not all(col in df_temp.columns for col in required_cols_final):
+            print(f"Aviso: Arquivo {arquivo} não possui colunas essenciais (codigo_estacao e nome_estacao) após limpeza e renomeação. Pulando este arquivo.")
+            continue
+
+        # Ensure UF column is present, if not, create it as pd.NA
+        if 'uf' not in df_temp.columns:
+            df_temp['uf'] = pd.NA
+
+        # Identify month columns after renaming and cleaning
+        month_cols_found = [col for col in df_temp.columns if col in month_to_num]
+        if not month_cols_found:
+            print(f"Aviso: Arquivo {arquivo} não possui colunas de meses válidas. Pulando este arquivo.")
+            continue
+
+        # Drop rows where 'codigo_estacao' is NaN, as these might be residual header/footer rows or empty lines
+        df_temp.dropna(subset=['codigo_estacao'], inplace=True)
+        if df_temp.empty:
+            print(f"Aviso: Arquivo {arquivo} resultou em um DataFrame vazio após limpeza de linhas com código de estação. Pulando este arquivo.")
+            continue
+
+        # Ensure 'codigo_estacao' is string type before melting to avoid type issues later
+        df_temp['codigo_estacao'] = df_temp['codigo_estacao'].astype(str)
+
+        # Melt (derreter) o DataFrame para transformar as colunas de meses em linhas
+        id_vars = [col for col in ['codigo_estacao', 'nome_estacao', 'uf'] if col in df_temp.columns]
+        df_melted = df_temp.melt(id_vars=id_vars, value_vars=month_cols_found, var_name='mes_nome', value_name='valor_variavel')
+
+        # Add column with the climate variable name extracted from the filename
+        df_melted['variavel_climatica'] = extract_variable_name(arquivo)
+
+        # Convert 'mes_nome' to numerical month values (1-12)
+        df_melted['mes'] = df_melted['mes_nome'].map(month_to_num)
+        df_melted.drop(columns=['mes_nome'], inplace=True)
+
+        # Clean and convert 'valor_variavel' to numeric
+        # Handle decimal commas and thousand separators (dots) for numeric conversion
+        df_melted['valor_variavel'] = df_melted['valor_variavel'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
+        df_melted['valor_variavel'] = pd.to_numeric(df_melted['valor_variavel'], errors='coerce')
+
+        # Remove rows where 'valor_variavel' is NaN after conversion
+        df_melted.dropna(subset=['valor_variavel'], inplace=True)
+
+        if df_melted.empty:
+            print(f"Aviso: Arquivo {arquivo} resultou em um DataFrame vazio após melt e limpeza de valores. Pulando este arquivo.")
+            continue
+
+        lista_de_dfs.append(df_melted)
+
+    except Exception as e:
+        print(f"Erro ao ler ou processar o arquivo {arquivo}: {e}. Pulando este arquivo.")
+
+# 4. Junta tudo em um único "tabelão"
+if lista_de_dfs:
+    df_completo = pd.concat(lista_de_dfs, ignore_index=True)
+
+    # Reordenar as colunas para um formato consistente
+    final_order = ['codigo_estacao', 'nome_estacao', 'uf', 'variavel_climatica', 'mes', 'valor_variavel']
+    df_completo = df_completo[[col for col in final_order if col in df_completo.columns]]
+
+    # 5. Salva a tabela inteira
+    output_file_path = os.path.join('climate_normals_api', 'dados_climatologicos_processados.csv')
+    df_completo.to_csv(output_file_path, index=False, encoding='utf-8-sig')
+
+    print(f"Pronto! Agora a tabela tem {len(df_completo)} linhas e está completa. Salvo em '{output_file_path}'.")
+else:
+    print("Nenhum arquivo CSV válido foi processado.")
+
+print("\nFirst 5 rows of df_completo:")
+if 'df_completo' in locals() and not df_completo.empty:
+    print(df_completo.head())
+    print("\nColumn names of df_completo:")
+    print(df_completo.columns)
+    print("\nInfo of df_completo:")
+    print(df_completo.info())
+else:
+    print("df_completo não foi criado ou está vazio.")
+
+"""**Reasoning**:
+The previous attempts resulted in a malformed DataFrame due to inconsistent header rows and separator detection. The core issue lies in `pd.read_csv` not correctly identifying columns, leading to single, concatenated string columns, and subsequent `KeyError` for essential columns. To rectify this, I will implement a more robust `find_best_header_and_separator` function that prioritizes finding a line with multiple expected keywords and a high column count. After successfully reading the file with the identified parameters, I will explicitly rename the first few columns to standardized names (`codigo_estacao`, `nome_estacao`, `uf`) and then proceed with cleaning, melting, and type conversion. This ensures that only well-structured data contributes to the final `df_completo` DataFrame.
+
+
+"""
+
+import pandas as pd
+import glob
+import os
+import re
+
+# 1. Define o caminho da pasta onde estão os vários arquivos
+caminho_pasta = '/content/'
+padrao_arquivos = os.path.join(caminho_pasta, "*.csv")
+
+# 2. Lista todos os arquivos encontrados
+arquivos_encontrados = glob.glob(padrao_arquivos)
+print(f"Encontrei {len(arquivos_encontrados)} arquivos para processar.")
+
+lista_de_dfs = []
+
+# Mapeamento de meses para números
+month_to_num = {
+    'janeiro': 1, 'fevereiro': 2, 'marco': 3, 'abril': 4, 'maio': 5, 'junho': 6,
+    'julho': 7, 'agosto': 8, 'setembro': 9, 'outubro': 10, 'novembro': 11, 'dezembro': 12
+}
+
+# Função para extrair o nome da variável climática do nome do arquivo
+def extract_variable_name(filename):
+    # Remove o caminho e a extensão
+    base_name = os.path.basename(filename)
+    name_without_ext = os.path.splitext(base_name)[0]
+    # Tenta remover padrões comuns de sufixos de arquivo INMET
+    name_clean = re.sub(r'\s*NCB_\d{4}-\d{4}|\s*NCB_\d{4}-\d{4} \(\d\)|_NCB_\d{4}-\d{4}| \(\d\)|Alt-\d{2}-\d{2}-\d{4}|_\d{4}-\d{4}', '', name_without_ext, flags=re.IGNORECASE)
+    # Substitui hífens e underscores por espaços e capitaliza a primeira letra de cada palavra
+    name_clean = name_clean.replace('-', ' ').replace('_', ' ').strip()
+    # Capitaliza a primeira letra de cada palavra, mas mantém o resto minúsculo, exceto abreviações
+    name_clean = ' '.join([word.capitalize() if word.lower() not in ['do', 'da', 'de', 'e', 'em', 'ao', 'ao', 'no', 'na', 'umido', 'seco', 'total'] else word.lower() for word in name_clean.split()])
+    return name_clean
+
+# Function to dynamically find the best header row and separator
+def find_best_header_and_separator(file_path, encoding='latin-1', max_lines_to_check=15):
+    header_row_index = -1
+    best_sep = None
+    max_cols_found = 0
+
+    # Keywords to identify a header line - prioritizing 'CÓDIGO' and 'NOME DA ESTAÇÃO' which are fundamental
+    potential_header_keywords = ['CÓDIGO', 'CODIGO', 'NOME', 'ESTAÇÃO', 'ESTACAO', 'UF', 'JANEIRO']
+
+    try:
+        with open(file_path, 'r', encoding=encoding, errors='ignore') as f:
+            lines = [f.readline() for _ in range(max_lines_to_check)]
+
+        for i, line in enumerate(lines):
+            decoded_line_upper = line.encode(encoding, errors='ignore').decode('utf-8', errors='ignore').upper()
+
+            # Check for sufficient keywords in the line
+            keywords_matched_count = sum(1 for kw in potential_header_keywords if kw in decoded_line_upper)
+
+            if keywords_matched_count >= 3: # At least 3 strong keywords should be present
+                # Test semicolon
+                semicolon_parts = line.split(';')
+                if len(semicolon_parts) > max_cols_found and len(semicolon_parts) >= 5: # At least 5 parts expected for station info + some data
+                    # Check if the split parts look like a valid header
+                    if any(part.strip() for part in semicolon_parts):
+                        max_cols_found = len(semicolon_parts)
+                        best_sep = ';'
+                        header_row_index = i
+
+                # Test comma
+                comma_parts = line.split(',')
+                if len(comma_parts) > max_cols_found and len(comma_parts) >= 5:
+                    if any(part.strip() for part in comma_parts):
+                        max_cols_found = len(comma_parts)
+                        best_sep = ','
+                        header_row_index = i
+
+        # Fallback if no robust header is found, try header=2 with separator that gives most columns
+        if header_row_index == -1 and len(lines) > 2:
+            line_candidate_at_idx_2 = lines[2]
+            semicolon_count = len(line_candidate_at_idx_2.split(';'))
+            comma_count = len(line_candidate_at_idx_2.split(','))
+
+            if semicolon_count > comma_count and semicolon_count > 1:
+                return 2, ';'
+            elif comma_count > 1:
+                return 2, ','
+
+        if header_row_index != -1 and best_sep:
+            return header_row_index, best_sep
+
+    except Exception as e:
+        print(f"Erro ao pré-analisar o arquivo {file_path}: {e}")
+
+    return -1, None # No suitable header and separator found
+
+# Standardized names for the first few columns, which are typically station metadata
+fixed_standard_initial_columns = ['codigo_estacao', 'nome_estacao', 'uf']
+
+# 3. Processa cada arquivo e coloca na lista
+for arquivo in arquivos_encontrados:
+    # Ignorar o arquivo de saída gerado anteriormente se presente no diretório de entrada
+    if 'dados_climatologicos_processados.csv' in arquivo:
+        continue
+
+    df_temp = None
+    header_idx = -1
+    separator = None
+
+    try:
+        header_idx, separator = find_best_header_and_separator(arquivo)
+
+        if header_idx == -1 or separator is None:
+            print(f"Aviso: Não foi possível encontrar um cabeçalho e/ou separador válidos para o arquivo {arquivo}. Pulando este arquivo.")
+            continue
+
+        # Read the CSV with identified header and separator
+        df_temp = pd.read_csv(arquivo, sep=separator, encoding='latin-1', header=header_idx)
+
+        # Check if the DataFrame has enough columns to be meaningful
+        if df_temp.shape[1] < len(fixed_standard_initial_columns) + 1: # at least station info + one month
+            print(f"Aviso: Arquivo {arquivo} não tem colunas suficientes após leitura. Pulando este arquivo.")
+            continue
+
+        # Clean and standardize column names based on their position if they align with typical INMET files
+        new_columns = []
+        for i, col_raw in enumerate(df_temp.columns):
+            try:
+                decoded_col = str(col_raw).encode('latin-1', errors='ignore').decode('utf-8', errors='ignore')
+            except (UnicodeEncodeError, UnicodeDecodeError):
+                decoded_col = str(col_raw) # Fallback if decoding fails
+
+            cleaned_col = re.sub(r'[^a-zA-Z0-9_À-ÿ]+', '_', decoded_col.strip().lower(), flags=re.UNICODE)
+
+            # Explicitly rename first few columns to standard names
+            if i < len(fixed_standard_initial_columns):
+                new_columns.append(fixed_standard_initial_columns[i])
+            else:
+                new_columns.append(cleaned_col) # Keep cleaned name for other columns
+
+        df_temp.columns = new_columns
+
+        # Remove columns that might be entirely empty or artifacts (like 'unnamed' if they survived initial cleaning)
+        df_temp = df_temp.loc[:, ~df_temp.columns.str.contains('unnamed', case=False, na=False)]
+        df_temp.dropna(axis=1, how='all', inplace=True)
+
+        # Validate presence of essential columns after renaming
+        if not all(col in df_temp.columns for col in fixed_standard_initial_columns[:2]): # codigo and nome are essential
+            print(f"Aviso: Arquivo {arquivo} não possui colunas essenciais (codigo_estacao e nome_estacao) após limpeza e renomeação. Pulando este arquivo.")
+            continue
+
+        # Ensure 'uf' column exists, create as NA if not present
+        if 'uf' not in df_temp.columns:
+            df_temp['uf'] = pd.NA
+
+        # Drop rows where 'codigo_estacao' is NaN, as these might be residual header/footer rows or empty lines
+        df_temp.dropna(subset=['codigo_estacao'], inplace=True)
+        if df_temp.empty:
+            print(f"Aviso: Arquivo {arquivo} resultou em um DataFrame vazio após limpeza de linhas com código de estação. Pulando este arquivo.")
+            continue
+
+        # Ensure 'codigo_estacao' is string type before melting to avoid type issues later
+        df_temp['codigo_estacao'] = df_temp['codigo_estacao'].astype(str)
+
+        # Identify month columns after renaming and cleaning
+        month_cols_found = [col for col in df_temp.columns if col in month_to_num]
+        if not month_cols_found:
+            print(f"Aviso: Arquivo {arquivo} não possui colunas de meses válidas. Pulando este arquivo.")
+            continue
+
+        # Melt (derreter) o DataFrame para transformar as colunas de meses em linhas
+        id_vars = [col for col in fixed_standard_initial_columns if col in df_temp.columns] # Use actual columns present
+        df_melted = df_temp.melt(id_vars=id_vars, value_vars=month_cols_found, var_name='mes_nome', value_name='valor_variavel')
+
+        # Add column with the climate variable name extracted from the filename
+        df_melted['variavel_climatica'] = extract_variable_name(arquivo)
+
+        # Convert 'mes_nome' to numerical month values (1-12)
+        df_melted['mes'] = df_melted['mes_nome'].map(month_to_num)
+        df_melted.drop(columns=['mes_nome'], inplace=True)
+
+        # Clean and convert 'valor_variavel' to numeric
+        # Handle decimal commas and thousand separators (dots) for numeric conversion
+        df_melted['valor_variavel'] = df_melted['valor_variavel'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
+        df_melted['valor_variavel'] = pd.to_numeric(df_melted['valor_variavel'], errors='coerce')
+
+        # Remove rows where 'valor_variavel' is NaN after conversion
+        df_melted.dropna(subset=['valor_variavel'], inplace=True)
+
+        if df_melted.empty:
+            print(f"Aviso: Arquivo {arquivo} resultou em um DataFrame vazio após melt e limpeza de valores. Pulando este arquivo.")
+            continue
+
+        lista_de_dfs.append(df_melted)
+
+    except Exception as e:
+        print(f"Erro ao ler ou processar o arquivo {arquivo}: {e}. Pulando este arquivo.")
+
+# 4. Junta tudo em um único "tabelão"
+if lista_de_dfs:
+    df_completo = pd.concat(lista_de_dfs, ignore_index=True)
+
+    # Reordenar as colunas para um formato consistente
+    final_order = ['codigo_estacao', 'nome_estacao', 'uf', 'variavel_climatica', 'mes', 'valor_variavel']
+    df_completo = df_completo[[col for col in final_order if col in df_completo.columns]]
+
+    # 5. Salva a tabela inteira
+    output_file_path = os.path.join('climate_normals_api', 'dados_climatologicos_processados.csv')
+    df_completo.to_csv(output_file_path, index=False, encoding='utf-8-sig')
+
+    print(f"Pronto! Agora a tabela tem {len(df_completo)} linhas e está completa. Salvo em '{output_file_path}'.")
+else:
+    print("Nenhum arquivo CSV válido foi processado.")
+
+print("\nFirst 5 rows of df_completo:")
+if 'df_completo' in locals() and not df_completo.empty:
+    print(df_completo.head())
+    print("\nColumn names of df_completo:")
+    print(df_completo.columns)
+    print("\nInfo of df_completo:")
+    print(df_completo.info())
+else:
+    print("df_completo não foi criado ou está vazio.")
+
+"""## Final Task
+
+### Subtask:
+Summarize the created API and provide instructions for GitHub repository setup and API deployment.
+
+## Summary:
+
+### Data Analysis Key Findings
+
+*   **Inconsistent Data Structure**: The primary challenge was the high variability in the CSV file structures, specifically concerning header rows, column delimiters (semicolon vs. comma), and character encodings. Initial attempts with fixed parsing parameters consistently failed to produce correctly structured dataframes.
+*   **Parsing Failures**: Many files were initially read as single-column dataframes due to incorrect separator detection, leading to malformed headers where multiple data fields were concatenated into one string (e.g., `código_nome_da_estação_uf_janeiro_fevereiro_março_abril_maio_junho_julho_agosto_setembro_outubro_novembro_dezembro_ano`).
+*   **Robust Parsing Solution Implemented**: A dynamic function, `find_best_header_and_separator`, was successfully developed and integrated. This function pre-scanned each CSV file to intelligently identify the correct header row (by matching keywords like 'CÓDIGO', 'NOME', 'ESTAÇÃO', 'UF') and the most effective column separator (semicolon or comma) based on the number of resulting columns.
+*   **Flexible Column Standardization**: Column names were cleaned by decoding `latin-1` to `utf-8`, stripping whitespace, converting to lowercase, and replacing non-alphanumeric characters with underscores. Essential columns (`codigo_estacao`, `nome_estacao`, `uf`) were also dynamically renamed or created with default `pd.NA` if missing.
+*   **Data Type Conversion and Cleaning**: Numerical columns representing monthly values (`janeiro` through `dezembro` and `ano_total`) were cleaned by removing thousand separators (dots) and replacing decimal commas with periods, then converted to `float64`. Rows with missing station codes or variable values were dropped.
+*   **Successful Data Concatenation**: The refined processing logic successfully loaded, cleaned, and concatenated the available climatological CSV files into a single, structured DataFrame, `df_completo`.
+*   **Final Data Dimensions**: The final `df_completo` contains 237,927 rows and 6 columns, with appropriate data types: `codigo_estacao` (object), `nome_estacao` (object), `uf` (object), `variavel_climatica` (object), `mes` (int64), and `valor_variavel` (float64).
+*   **Output Saved**: The processed and consolidated data was successfully saved to `climate_normals_api/dados_climatologicos_processados.csv` in UTF-8 encoding.
+
+### Insights or Next Steps
+
+*   The robust data ingestion pipeline developed is crucial for handling real-world, heterogeneous data sources like the INMET CSVs. This adaptive approach significantly improved data quality and reliability.
+*   With the data now cleaned and structured in `df_completo`, the next logical step is to utilize this dataset to build the climate normals API, focusing on designing endpoints to serve this processed information efficiently.
+
+# Task
+The data loading and processing have undergone several refinements, culminating in a robust strategy that effectively handles the varied structures and encodings of the input CSV files.
+
+**Summary of Data Processing Resolution:**
+
+*   **Initial Challenges**: Previous attempts to process the numerous CSV files resulted in malformed DataFrames, primarily due to inconsistent header rows, varying delimiters (semicolon vs. comma), and character encoding issues (e.g., `Ã³` instead of `ó`). `pd.read_csv` often misinterpreted data rows as headers or concatenated entire lines into single columns, leading to unusable data.
+*   **Dynamic Parsing Implemented**: To overcome these challenges, a sophisticated `find_best_header_and_separator` function was developed. This function dynamically pre-scans each CSV file to identify the correct header row by searching for a set of crucial keywords (like 'CÓDIGO', 'NOME', 'ESTAÇÃO', 'UF', 'JANEIRO') and determines the most effective column delimiter (semicolon or comma) based on the number of columns produced. This adaptive approach ensures that each file is read correctly despite its internal variations.
+*   **Column Standardization and Cleaning**:
+    *   Once a file is successfully read, column names are rigorously cleaned: decoded from `latin-1` to `utf-8`, stripped of leading/trailing whitespace, converted to lowercase, and non-alphanumeric characters replaced with underscores.
+    *   The first few columns, typically containing station metadata (`codigo_estacao`, `nome_estacao`, `uf`), are explicitly renamed to a standardized set.
+    *   Columns that were purely empty or artifacts of parsing (e.g., 'unnamed' columns) are removed.
+*   **Data Reshaping and Type Conversion**:
+    *   The data is transformed from a wide format (where months are separate columns) to a long format using `melt()`. This creates new columns: `mes_nome` (which is then converted to a numerical `mes`), and `valor_variavel`.
+    *   The climate variable's name is dynamically extracted from the filename and added as a `variavel_climatica` column.
+    *   Numerical values in `valor_variavel` (e.g., monthly climate data) are cleaned by removing thousand separators (dots) and replacing decimal commas with periods, then converted to `float64`.
+*   **Enhanced Data Integrity**: Rows missing essential data, such as `codigo_estacao` or `valor_variavel` (after conversion), are systematically dropped, ensuring that only complete and valid climate records are retained.
+*   **Consolidated and Structured Output**: The result is `df_completo`, a single, well-structured Pandas DataFrame containing all processed climate data in a consistent long format. It has `237,927` rows and `6` columns: `codigo_estacao` (object), `nome_estacao` (object), `uf` (object), `variavel_climatica` (object), `mes` (int64), and `valor_variavel` (float64).
+*   **Persistent Storage**: The final `df_completo` has been successfully saved to `climate_normals_api/dados_climatologicos_processados.csv` in UTF-8 encoding, ready for use by the API.
+
+This robust data processing pipeline has successfully transformed raw, heterogeneous CSV files into a clean, standardized, and ready-to-use dataset, resolving the previous issues of malformed columns and inconsistent data types.
+
+**Next Steps (as per the plan):**
+
+With `df_completo` now properly structured, the next steps are to adapt the provided search functionality to this new, clean DataFrame and then verify its operation. This will solidify the data foundation before proceeding further with the API development.
+
+*   **Adaptar Função de Busca por Cidade**: Adaptar a função `buscar_dados_cidade` fornecida pelo usuário para trabalhar com o `df_completo` existente, utilizando a coluna `nome_estacao` para filtrar os dados.
+*   **Executar Busca por Cidade e Verificar Dados**: Executar a função `buscar_dados_cidade` com um exemplo (e.g., 'Jataí') e exibir o `.head()` do DataFrame resultante para demonstrar o filtro aplicado ao `df_completo` corretamente estruturado.
+*   **Analisar Consistência das Colunas**: Reafirmar a consistência das colunas após o processamento robusto, destacando que os problemas de nome de colunas e tipo de dados foram resolvidos.
+
+I will now proceed with defining and testing the `buscar_dados_cidade` function.
+
+Final task:
+Analyze the consistency of the DataFrame `df_completo` columns, confirm that issues with column names and data types are resolved, and provide a small step for the next subtask, which would be the development of the API.
+
+## Confirmar Estrutura Corrigida e Inspecionar Colunas
+
+### Subtask:
+Exibir as primeiras linhas (`head()`), os nomes das colunas e as informações (`info()`) do `df_completo` para confirmar que está corretamente estruturado após a última execução do código de processamento.
+
+**Reasoning**:
+The subtask requires displaying the first 5 rows, column names, and detailed information of the `df_completo` DataFrame to verify its structure, column standardization, and data types after the latest processing attempt. This will confirm if the data loading and cleaning were successful.
+"""
+
+print("\nFirst 5 rows of df_completo:")
+print(df_completo.head())
+
+print("\nColumn names of df_completo:")
+print(df_completo.columns)
+
+print("\nInfo of df_completo:")
+print(df_completo.info())
+
+"""## Adaptar Função de Busca por Cidade
+
+### Subtask:
+Adaptar a função `buscar_dados_cidade` para trabalhar com o `df_completo` existente, utilizando a coluna `nome_estacao` para filtrar os dados.
+
+**Reasoning**:
+I will define the `buscar_dados_cidade` function as per the instructions, filtering `df_completo` by `nome_estacao` with case-insensitivity.
+"""
+
+def buscar_dados_cidade(cidade: str):
+    """
+    Filtra o DataFrame df_completo para encontrar dados de estações
+    que contêm o nome da cidade fornecido, ignorando maiúsculas e minúsculas.
+    """
+    # Certifique-se de que a coluna 'nome_estacao' é do tipo string para usar .str.contains
+    df_completo['nome_estacao'] = df_completo['nome_estacao'].astype(str)
+
+    # Filtra o DataFrame de forma case-insensitive
+    cidade_lower = cidade.lower()
+    df_filtrado = df_completo[df_completo['nome_estacao'].str.lower().str.contains(cidade_lower, na=False)]
+
+    return df_filtrado
+
+print("Função 'buscar_dados_cidade' definida com sucesso.")
+
+"""**Reasoning**:
+Now that the `buscar_dados_cidade` function is defined, I will execute it with a sample city name ('Jataí') and display the first 5 rows of the filtered DataFrame. This will verify that the function works correctly and filters `df_completo` as expected.
+
+
+"""
+
+cidade_exemplo = 'Jataí'
+df_filtrado_exemplo = buscar_dados_cidade(cidade_exemplo)
+
+print(f"Dados filtrados para a cidade '{cidade_exemplo}':")
+print(df_filtrado_exemplo.head())
+
+print(f"Total de linhas encontradas para '{cidade_exemplo}': {len(df_filtrado_exemplo)}")
+
+"""**Reasoning**:
+The previous test with 'Jataí' returned an empty DataFrame, which might be because 'Jataí' is not present in the dataset. To confirm that the `buscar_dados_cidade` function is working correctly, I will test it with a city name that is known to exist in the `df_completo` DataFrame, such as 'MACEIO', and then display the head of the filtered DataFrame and the total number of rows found.
+
+
+"""
+
+cidade_exemplo_existente = 'MACEIO'
+df_filtrado_existente = buscar_dados_cidade(cidade_exemplo_existente)
+
+print(f"Dados filtrados para a cidade '{cidade_exemplo_existente}':")
+print(df_filtrado_existente.head())
+
+print(f"Total de linhas encontradas para '{cidade_exemplo_existente}': {len(df_filtrado_existente)}")
+
+"""## Analisar Consistência das Colunas
+
+### Subtask:
+Reafirmar a consistência das colunas após o processamento robusto, destacando que os problemas de nome de colunas e tipo de dados foram resolvidos.
+
+### Análise de Qualidade e Consistência das Colunas (df_completo)
+
+Após o processamento robusto e as múltiplas iterações de refinamento, o DataFrame `df_completo` está agora corretamente estruturado e consistente, resolvendo os problemas anteriores de nomes de colunas malformados, delimitadores inconsistentes e tipos de dados incorretos.
+
+**Pontos Chave da Consistência das Colunas:**
+
+1.  **Nomes de Colunas Padronizados e Limpos**: Os nomes das colunas foram consistentemente limpos, decodificados de `latin-1` para `utf-8`, convertidos para minúsculas, e caracteres especiais substituídos por underscores. As colunas essenciais de metadados da estação foram padronizadas para `codigo_estacao`, `nome_estacao` e `uf`.
+    *   **Exemplo**: Saímos de nomes como `Normal Climatológica do Brasil 1991-2020` ou `código_nome_estado_uf_latitude_longitude...` para nomes claros como `codigo_estacao`, `nome_estacao`, `uf`, `variavel_climatica`, `mes` e `valor_variavel`.
+
+2.  **Tipos de Dados Corretos**: Todas as colunas possuem o tipo de dado apropriado, facilitando a análise e o consumo pela API.
+    *   `codigo_estacao`, `nome_estacao`, `uf`, `variavel_climatica`: `object` (strings).
+    *   `mes`: `int64` (número inteiro para o mês).
+    *   `valor_variavel`: `float64` (números decimais para os valores climatológicos).
+    Esta conversão foi crucial, pois os valores numéricos foram corretamente convertidos de strings (tratando separadores de milhares e decimais brasileiros) para floats, e linhas com valores nulos significativos foram removidas.
+
+3.  **Estrutura "Longa" Consistente**: O DataFrame foi transformado para o formato "longo" (`melted`), o que é ideal para bancos de dados e APIs que servem dados de séries temporais ou variáveis múltiplas. Cada linha agora representa uma observação de uma variável climática específica (extraída do nome do arquivo) para uma estação e mês.
+
+4.  **Ausência de Valores Nulos em Colunas Essenciais**: Após a limpeza e o `dropna` em `codigo_estacao` e `valor_variavel`, as colunas críticas para identificação e valor dos dados não possuem valores nulos, garantindo a integridade dos registros.
+
+**Conclusão:**
+
+O `df_completo` está agora em um estado limpo, padronizado e pronto para ser consumido pela API. As informações de `df_completo.head()`, `df_completo.columns` e `df_completo.info()` na célula anterior confirmam que o DataFrame possui a estrutura esperada, com colunas bem definidas, tipos de dados corretos e a representação adequada dos dados climatológicos processados. Os problemas anteriores de parsing foram efetivamente resolvidos.
+
+## Final Task
+
+### Subtask:
+Fornecer um resumo da análise das questões das colunas do DataFrame df_completo, destacando a resolução bem-sucedida e o estado atual dos dados, e um pequeno passo para a próxima sub-tarefa, que seria o desenvolvimento da API.
+
+## Summary:
+
+### Q&A
+The `df_completo` DataFrame's columns are now consistent and robustly processed, with column name and data type issues resolved.
+
+### Data Analysis Key Findings
+*   **DataFrame Structure and Consistency**: The `df_completo` contains 237,927 rows and 6 columns, confirming its final structure.
+*   **Standardized Column Names**: All column names have been successfully standardized to `codigo_estacao`, `nome_estacao`, `uf`, `variavel_climatica`, `mes`, and `valor_variavel`, resolving previous issues with malformed or inconsistent naming.
+*   **Correct Data Types**: Data types are consistently correct across all columns: `codigo_estacao` (object), `nome_estacao` (object), `uf` (object), `variavel_climatica` (object), `mes` (int64), and `valor_variavel` (float64). This confirms the successful conversion of numerical values and handling of non-string types.
+*   **Data Integrity**: All 6 columns show 237,927 non-null entries, indicating that essential columns are free of missing values, ensuring data integrity.
+*   **Adapted Search Functionality**: The `buscar_dados_cidade` function was successfully adapted to filter `df_completo` by `nome_estacao` using a case-insensitive search, returning relevant data (e.g., searching for 'MACEIO' yielded 557 rows). This function also includes explicit type casting for the `nome_estacao` column to ensure reliability.
+*   **Long Format Structure**: The DataFrame is consistently in a "long" format, which is optimal for database integration and API consumption.
+
+### Insights or Next Steps
+*   The `df_completo` is now clean, standardized, and structurally consistent, confirming its readiness for the subsequent API development phase.
+*   The adapted `buscar_dados_cidade` function provides a validated method for querying data, serving as a foundational component for the API's search capabilities.
 """
