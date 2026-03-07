@@ -1,0 +1,6 @@
+id_estacao,latitude,longitude,nome_estacao,ano,mes,temperatura_media_celsius,temperatura_maxima_celsius,temperatura_minima_celsius,precipitacao_mm,umidade_relativa_percentual,velocidade_vento_kmh,pressao_hpa
+101,-23.55,-46.63,São Paulo,2020,1,23.5,28.1,19.2,150.5,75,15.2,1010.5
+102,-15.78,-47.93,Brasília,2020,1,26.25,26.5,18.0,120.0,80,10.5,1012.0
+103,-3.1,-60.02,Manaus,2020,1,28.0,32.5,24.0,250.0,88,8.0,1008.0
+104,-22.9,-43.18,Rio de Janeiro,2020,1,26.5,31.0,22.0,155.325,70,20.1,1011.5
+105,-12.97,-38.51,Salvador,2020,1,27.0,31.8,23.0,100.8,78,12.3,1009.0
