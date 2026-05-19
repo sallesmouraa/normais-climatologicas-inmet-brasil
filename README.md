@@ -150,7 +150,7 @@ O arquivo CSV contém as seguintes colunas principais:
 ## 🌐 Cobertura Geográfica
 
 - ✅ **27 Unidades Federativas** (26 estados + DF)
-- ✅ **5.570+ Municípios brasileiros**
+- ✅ **240+ Municípios brasileiros**
 - ✅ **5 Regiões**: Norte, Nordeste, Centro-Oeste, Sudeste, Sul
 - ✅ **Todos os Biomas**: Amazônia, Cerrado, Caatinga, Mata Atlântica, Pantanal, Pampas
 
@@ -205,7 +205,7 @@ Este projeto está licenciado sob a **GNU General Public License v3.0** - veja o
 
 **Rodrigo Salles** ([@sallesmouraa](https://github.com/sallesmouraa))
 
-- 🌐 Desenvolvedor Full Stack
+- 🌐 Estudante de Geografia 
 - 🗺️ Especialista em Geospatial & GeoAI
 - 📊 Data Science & Climate Analysis
 
