@@ -27,7 +27,8 @@ st.markdown(
 
 st.divider()
 
-DATA_FILE_PATH = Path(os.getenv("DATA_FILE_PATH", "dados_climatologicos_processados.csv"))
+# Usar arquivo harmonizado por padrão
+DATA_FILE_PATH = Path(os.getenv("DATA_FILE_PATH", "dados_climatologicos_harmonizados.csv"))
 REQUIRED_COLUMNS = {
     "regiao",
     "estado",
@@ -57,7 +58,8 @@ def carregar_dados(data_file_path: str) -> pd.DataFrame | None:
     return df
 
 
-def filtrar_dados(df: pd.DataFrame) -> pd.DataFrame:
+def filtrar_dados(df: pd.DataFrame) -> tuple[pd.DataFrame, str]:
+    """Aplica filtros e retorna dados filtrados + região selecionada."""
     st.sidebar.title("🔍 Filtros")
     st.sidebar.divider()
 
@@ -81,7 +83,8 @@ def filtrar_dados(df: pd.DataFrame) -> pd.DataFrame:
 
     st.sidebar.divider()
     st.sidebar.info(f"📊 {len(dados_filtrados)} registros")
-    return dados_filtrados
+    
+    return dados_filtrados, regiao
 
 
 def mostrar_metricas(df: pd.DataFrame) -> None:
@@ -163,7 +166,7 @@ def main() -> None:
         )
         st.stop()
 
-    dados_filtrados = filtrar_dados(dados)
+    dados_filtrados, regiao_selecionada = filtrar_dados(dados)
 
     if dados_filtrados.empty:
         st.warning("Nenhum dado encontrado para os filtros selecionados.")
@@ -171,7 +174,7 @@ def main() -> None:
 
     mostrar_metricas(dados_filtrados)
     st.divider()
-    mostrar_graficos(dados_filtrados, st.session_state.get("regiao", "Todas"))
+    mostrar_graficos(dados_filtrados, regiao_selecionada)
     st.divider()
 
     st.subheader("📋 Dados")
