@@ -68,3 +68,13 @@ docker-compose.override.yml
 node_modules/
 npm-debug.log
 yarn-error.log
+
+# Streamlit
+.streamlit/
+*.streamlit.cache/
+
+# Local data files (não incluir dados harmonizados ou processados)
+# Os arquivos CSV são rastreados com Git LFS (.gitattributes)
+# Descomentar se quiser ignorar localmente:
+# dados_climatologicos_harmonizados.csv
+# dados_climatologicos_processados.csv
