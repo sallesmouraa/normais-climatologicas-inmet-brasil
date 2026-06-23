@@ -1,4 +1,4 @@
-.PHONY: help install dev prod lint format test clean docker-build docker-up docker-down docker-logs env-setup serve
+.PHONY: help install dev prod lint format test clean docker-build docker-up docker-down docker-logs env-setup serve harmonize dashboard
 
 # ========================================
 # Variáveis
@@ -21,8 +21,12 @@ help:
 	@echo "  make install          - Instala dependências"
 	@echo "  make env-setup        - Cria .env do .env.example"
 	@echo ""
+	@echo "📊 DADOS:"
+	@echo "  make harmonize        - Harmoniza dados (longo → largo)"
+	@echo ""
 	@echo "🚀 DESENVOLVIMENTO:"
 	@echo "  make dev              - Roda API em modo desenvolvimento"
+	@echo "  make dashboard        - Roda Dashboard Streamlit"
 	@echo "  make serve            - Alias para 'make dev'"
 	@echo "  make prod             - Roda API em modo produção"
 	@echo ""
@@ -55,7 +59,7 @@ install-dev:
 	@echo "📦 Instalando dependências + dev tools..."
 	$(PIP) install --upgrade pip
 	$(PIP) install -r requirements.txt
-	$(PIP) install pytest pytest-cov black flake8 mypy
+	$(PIP) install pytest pytest-cov black flake8 mypy streamlit plotly
 	@echo "✅ Dependências e ferramentas de desenvolvimento instaladas!"
 
 # ========================================
@@ -76,6 +80,16 @@ env-reset:
 	@echo "✅ .env recriado com valores padrão"
 
 # ========================================
+# Harmonização de Dados
+# ========================================
+harmonize:
+	@echo "📊 Harmonizando dados..."
+	@echo "   Transformando formato longo → formato largo consolidado"
+	$(PYTHON) harmonizar_dados.py
+	@echo "✅ Harmonização concluída!"
+	@echo "   Arquivo gerado: dados_climatologicos_harmonizados.csv"
+
+# ========================================
 # Desenvolvimento
 # ========================================
 dev:
@@ -91,6 +105,12 @@ prod:
 	@echo "🚀 Iniciando API em modo PRODUÇÃO..."
 	@echo "📍 Acesse: http://0.0.0.0:8000"
 	$(PYTHON) -m uvicorn api_normais_climatologicas_do_brasil:app --host 0.0.0.0 --port 8000 --workers 4
+
+dashboard:
+	@echo "📊 Iniciando Dashboard Streamlit..."
+	@echo "📍 Acesse: http://localhost:8501"
+	@echo "🛑 Pressione Ctrl+C para parar"
+	@streamlit run app.py
 
 # ========================================
 # Qualidade de Código
@@ -187,12 +207,13 @@ info:
 # ========================================
 # Setup Inicial
 # ========================================
-setup: install env-setup info
+setup: install env-setup harmonize info
 	@echo ""
 	@echo "✅ Setup concluído! Próximos passos:"
 	@echo "1. Edite .env com suas configurações"
 	@echo "2. Execute 'make dev' para iniciar a API"
-	@echo "3. Acesse http://localhost:8000/docs"
+	@echo "3. Ou execute 'make dashboard' para iniciar o Dashboard"
+	@echo "4. Acesse http://localhost:8000/docs (API) ou http://localhost:8501 (Dashboard)"
 
 # ========================================
 # Default
