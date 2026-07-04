@@ -1,5 +1,13 @@
 """Tests for the Streamlit app functions."""
 
+import sys
+from unittest.mock import MagicMock
+
+# Mock streamlit before importing app to avoid UI execution during tests
+mock_st = MagicMock()
+mock_st.cache_data = lambda **kwargs: (lambda f: f)
+sys.modules["streamlit"] = mock_st
+
 import pandas as pd
 import pytest
 
